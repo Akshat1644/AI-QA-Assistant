@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import json
 
 from app.gemini_service import generate_test_cases
@@ -36,9 +37,23 @@ if st.button("Generate Test Cases"):
 
                 data = json.loads(result)
 
-                st.success("Test Cases Generated Successfully")
+                # st.success("Test Cases Generated Successfully")
+                st.subheader("Generated Test Cases")
 
-                st.json(data)
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Test Case ID",
+                    "Type",
+                    "Scenario",
+                    "Expected Result",
+                    "Priority"
+                ]
+
+                st.dataframe(
+                    df,
+                    use_container_width=True
+                )
 
             except Exception:
 
