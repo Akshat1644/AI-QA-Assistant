@@ -1,6 +1,6 @@
 # AI QA Assistant
 
-An AI-powered QA Assistant that generates software test cases from requirements using Gemini AI.
+AI-powered QA Assistant that generates software test cases from requirements using Gemini AI and Streamlit.
 
 ## Features
 
