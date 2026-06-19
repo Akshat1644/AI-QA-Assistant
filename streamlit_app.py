@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 from app.gemini_service import generate_test_cases
-from app.prompts import TEST_CASE_PROMPT
+from app.prompts import TEST_CASE_PROMPT, GAP_ANALYSIS_PROMPT
 
 st.set_page_config(
     page_title="AI QA Assistant",
@@ -60,3 +60,21 @@ if st.button("Generate Test Cases"):
                 st.error("Unable to parse JSON response")
 
                 st.text(result)
+
+
+
+if st.button("Analyze Requirement Gaps"):
+
+    if requirement.strip():
+
+        prompt = GAP_ANALYSIS_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Requirement..."):
+
+            result = generate_test_cases(prompt)
+
+            st.subheader("Requirement Gap Analysis")
+
+            st.markdown(result)
