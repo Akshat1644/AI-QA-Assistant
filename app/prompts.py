@@ -52,3 +52,24 @@ Use the following sections:
 Requirement:
 {requirement}
 """
+
+
+
+TEST_DATA_PROMPT = """
+Act as a Senior QA Engineer.
+
+Analyze the requirement and generate test data.
+
+Return ONLY valid JSON in this format:
+
+[
+  {{
+    "field": "Email",
+    "valid_data": "test@gmail.com",
+    "invalid_data": "abc@"
+  }}
+]
+
+Requirement:
+{requirement}
+"""
