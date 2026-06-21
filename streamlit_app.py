@@ -8,6 +8,8 @@ from app.prompts import (
     GAP_ANALYSIS_PROMPT,
     TEST_DATA_PROMPT
 )
+from app.export_service import convert_df_to_excel
+from datetime import datetime
 
 st.set_page_config(
     page_title="AI QA Assistant",
@@ -54,9 +56,18 @@ if st.button("Generate Test Cases"):
                     "Priority"
                 ]
 
+                excel_file = convert_df_to_excel(df)
+
                 st.dataframe(
                     df,
                     use_container_width=True
+                )
+
+                st.download_button(
+                    label="Download Excel",
+                    data=excel_file,
+                    file_name=f"test_cases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
 
             except Exception:
@@ -125,3 +136,5 @@ if st.button("Generate Test Data"):
                 st.error(e)
 
                 st.code(result)
+
+
