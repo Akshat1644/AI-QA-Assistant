@@ -11,7 +11,7 @@ client= genai.Client(
 
 def generate_test_cases(prompt):
     response = client.models.generate_content(
-        model="gemini-2.5",
+        model="gemini-2.5-flash",
         contents=prompt
 )
 
