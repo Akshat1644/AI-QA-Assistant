@@ -27,6 +27,7 @@ Requirement:
 """
 
 
+
 GAP_ANALYSIS_PROMPT = """
 Act as a Senior QA Engineer and Business Analyst.
 
@@ -55,6 +56,7 @@ Requirement:
 
 
 
+
 TEST_DATA_PROMPT = """
 Act as a Senior QA Engineer.
 
@@ -71,5 +73,38 @@ Return ONLY valid JSON in this format:
 ]
 
 Requirement:
+{requirement}
+"""
+
+
+
+
+API_TEST_CASE_PROMPT = """
+Act as a Senior API QA Engineer.
+
+Analyze the API details and generate:
+
+1. Positive Test Cases
+2. Negative Test Cases
+3. Validation Test Cases
+4. Boundary Test Cases
+5. Authorization Test Cases
+6. Error Handling Test Cases
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+  {{
+    "tc_id": "TC001",
+    "type": "Positive",
+    "scenario": "Valid request with all mandatory fields",
+    "expected_result": "API returns 200 OK",
+    "priority": "High"
+  }}
+]
+
+API Details:
 {requirement}
 """

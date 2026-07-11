@@ -6,7 +6,8 @@ from app.gemini_service import generate_test_cases
 from app.prompts import (
     TEST_CASE_PROMPT,
     GAP_ANALYSIS_PROMPT,
-    TEST_DATA_PROMPT
+    TEST_DATA_PROMPT,
+    API_TEST_CASE_PROMPT
 )
 from app.export_service import convert_df_to_excel
 from datetime import datetime
@@ -47,7 +48,7 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3 = st.columns(3)
+button_col1, button_col2, button_col3, button_col4= st.columns(4)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -57,6 +58,9 @@ with button_col2:
 
 with button_col3:
     generate_data = st.button("Generate Test Data")
+
+with button_col4:
+     generate_api_tc = st.button("Generate API Test Cases")
 
 
 if generate_tc:
@@ -196,3 +200,54 @@ if generate_data:
                     st.code(result)
 
 
+if generate_api_tc:
+
+    if requirement.strip():
+
+        prompt = API_TEST_CASE_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Generating API Test Cases..."):
+
+            result = generate_test_cases(prompt)
+
+            result = result.replace("```json", "")
+            result = result.replace("```", "")
+            result = result.strip()
+
+            try:
+
+                data = json.loads(result)
+
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Test Case ID",
+                    "Type",
+                    "Scenario",
+                    "Expected Result",
+                    "Priority"
+                ]
+
+                st.subheader("Generated API Test Cases")
+
+                st.dataframe(
+                    df,
+                    use_container_width=True
+                )
+
+                excel_file = convert_df_to_excel(df)
+
+                st.download_button(
+                    label="Download API Test Cases",
+                    data=excel_file,
+                    file_name=f"api_test_cases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+
+            except Exception as e:
+
+                st.error(e)
+
+                st.code(result)
