@@ -108,3 +108,20 @@ Format:
 API Details:
 {requirement}
 """
+
+
+PLAYWRIGHT_SCRIPT_PROMPT = """
+Act as a Senior Automation QA Engineer.
+
+Generate a Playwright Python automation script based on the requirement.
+
+Requirements:
+{requirement}
+
+Rules:
+
+1. Use Playwright Python syntax.
+2. Include test function.
+3. Add comments where appropriate.
+4. Return only Python code.
+"""

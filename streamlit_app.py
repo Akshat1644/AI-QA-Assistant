@@ -7,7 +7,8 @@ from app.prompts import (
     TEST_CASE_PROMPT,
     GAP_ANALYSIS_PROMPT,
     TEST_DATA_PROMPT,
-    API_TEST_CASE_PROMPT
+    API_TEST_CASE_PROMPT,
+    PLAYWRIGHT_SCRIPT_PROMPT
 )
 from app.export_service import convert_df_to_excel
 from datetime import datetime
@@ -48,7 +49,7 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4= st.columns(4)
+button_col1, button_col2, button_col3, button_col4, button_col5= st.columns(5)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -61,6 +62,9 @@ with button_col3:
 
 with button_col4:
      generate_api_tc = st.button("Generate API Test Cases")
+
+with button_col5:
+    generate_script = st.button("Generate Playwright Script")
 
 
 if generate_tc:
@@ -251,3 +255,52 @@ if generate_api_tc:
                 st.error(e)
 
                 st.code(result)
+
+
+
+if generate_script:
+
+    if requirement.strip():
+
+        prompt = PLAYWRIGHT_SCRIPT_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Generating Playwright Script..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                st.subheader("Generated Playwright Script")
+
+                st.code(
+                    result,
+                    language="python"
+                )
+
+                download_col1, download_col2 = st.columns(2)
+
+                with download_col1:
+                    st.download_button(
+                    label="📥 Download .py",
+                    data=result,
+                    file_name=f"playwright_script_{datetime.now().strftime('%Y%m%d_%H%M%S')}.py",
+                    mime="text/plain"
+                )
+                    
+
+                with download_col2:
+                    st.download_button(
+                    label="📄 Download .txt",
+                    data=result,
+                    file_name=f"playwright_script_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    mime="text/plain"
+                )
+
+
+            except Exception as e:
+
+                st.error("Failed to generate Playwright script")
+
+                st.exception(e)
