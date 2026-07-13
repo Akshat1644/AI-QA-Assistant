@@ -125,3 +125,35 @@ Rules:
 3. Add comments where appropriate.
 4. Return only Python code.
 """
+
+
+QUALITY_SCORE_PROMPT = """
+Act as a Senior QA Lead.
+
+Analyze the requirement.
+
+Return ONLY in this format:
+
+COMPLETENESS: XX
+
+CLARITY: XX
+
+TESTABILITY: XX
+
+AMBIGUITY: XX
+
+STRENGTHS:
+- Point 1
+- Point 2
+
+WEAKNESSES:
+- Point 1
+- Point 2
+
+RECOMMENDATIONS:
+- Point 1
+- Point 2
+
+Requirement:
+{requirement}
+"""
