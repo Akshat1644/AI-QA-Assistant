@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
+import re
 
 from app.gemini_service import generate_test_cases
 from app.prompts import (
@@ -8,7 +9,8 @@ from app.prompts import (
     GAP_ANALYSIS_PROMPT,
     TEST_DATA_PROMPT,
     API_TEST_CASE_PROMPT,
-    PLAYWRIGHT_SCRIPT_PROMPT
+    PLAYWRIGHT_SCRIPT_PROMPT,
+    QUALITY_SCORE_PROMPT
 )
 from app.export_service import convert_df_to_excel
 from datetime import datetime
@@ -49,7 +51,7 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4, button_col5= st.columns(5)
+button_col1, button_col2, button_col3, button_col4, button_col5, button_col6= st.columns(6)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -65,6 +67,9 @@ with button_col4:
 
 with button_col5:
     generate_script = st.button("Generate Playwright Script")
+
+with button_col6:
+    quality_score = st.button("Requirement Quality Score")
 
 
 if generate_tc:
@@ -302,5 +307,108 @@ if generate_script:
             except Exception as e:
 
                 st.error("Failed to generate Playwright script")
+
+                st.exception(e)
+
+
+if quality_score:
+
+    if requirement.strip():
+
+        prompt = QUALITY_SCORE_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Requirement Quality..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                import re
+
+                completeness = int(
+                    re.search(
+                        r"COMPLETENESS:\s*(\d+)",
+                        result
+                    ).group(1)
+                )
+
+                clarity = int(
+                    re.search(
+                        r"CLARITY:\s*(\d+)",
+                        result
+                    ).group(1)
+                )
+
+                testability = int(
+                    re.search(
+                        r"TESTABILITY:\s*(\d+)",
+                        result
+                    ).group(1)
+                )
+
+                ambiguity = int(
+                    re.search(
+                        r"AMBIGUITY:\s*(\d+)",
+                        result
+                    ).group(1)
+                )
+
+                # Calculate overall score
+                overall = round(
+                    (
+                        completeness +
+                        clarity +
+                        testability +
+                        ambiguity
+                    ) / 4
+                )
+
+                st.subheader("Requirement Quality Dashboard")
+
+                metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
+
+                with metric_col1:
+                    st.metric("Overall", f"{overall}/100")
+
+                with metric_col2:
+                    st.metric("Completeness", f"{completeness}/100")
+
+                with metric_col3:
+                    st.metric("Clarity", f"{clarity}/100")
+
+                with metric_col4:
+                    st.metric("Testability", f"{testability}/100")
+
+                with metric_col5:
+                    st.metric("Ambiguity", f"{ambiguity}/100")
+
+                st.progress(overall / 100)
+
+                if overall >= 80:
+                    st.success(
+                        f"Excellent Requirement Quality ({overall}/100)"
+                    )
+
+                elif overall >= 60:
+                    st.warning(
+                        f"Average Requirement Quality ({overall}/100)"
+                    )
+
+                else:
+                    st.error(
+                        f"Poor Requirement Quality ({overall}/100)"
+                    )
+
+                st.subheader("Detailed Analysis")
+
+                st.markdown(result)
+
+            except Exception as e:
+
+                st.error(
+                    "Failed to analyze requirement quality"
+                )
 
                 st.exception(e)
