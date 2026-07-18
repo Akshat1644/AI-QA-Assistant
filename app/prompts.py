@@ -157,3 +157,38 @@ RECOMMENDATIONS:
 Requirement:
 {requirement}
 """
+
+
+COVERAGE_ANALYSIS_PROMPT = """
+Act as a Senior QA Lead.
+
+Analyze the requirement and identify:
+
+1. Covered Scenarios
+2. Missing Test Scenarios
+3. High Risk Areas
+4. Additional Recommendations
+
+Return the response in markdown format.
+
+Use this structure:
+
+## Covered Scenarios
+
+- Scenario 1
+
+## Missing Scenarios
+
+- Scenario 1
+
+## High Risk Areas
+
+- Risk 1
+
+## Recommendations
+
+- Recommendation 1
+
+Requirement:
+{requirement}
+"""

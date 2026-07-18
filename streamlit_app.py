@@ -10,7 +10,8 @@ from app.prompts import (
     TEST_DATA_PROMPT,
     API_TEST_CASE_PROMPT,
     PLAYWRIGHT_SCRIPT_PROMPT,
-    QUALITY_SCORE_PROMPT
+    QUALITY_SCORE_PROMPT,
+    COVERAGE_ANALYSIS_PROMPT
 )
 from app.export_service import convert_df_to_excel
 from datetime import datetime
@@ -51,7 +52,7 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4, button_col5, button_col6= st.columns(6)
+button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7= st.columns(7)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -70,6 +71,9 @@ with button_col5:
 
 with button_col6:
     quality_score = st.button("Requirement Quality Score")
+
+with button_col7:
+    coverage_analysis = st.button("Coverage Analysis")
 
 
 if generate_tc:
@@ -409,6 +413,34 @@ if quality_score:
 
                 st.error(
                     "Failed to analyze requirement quality"
+                )
+
+                st.exception(e)
+
+
+
+if coverage_analysis:
+
+    if requirement.strip():
+
+        prompt = COVERAGE_ANALYSIS_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Test Coverage..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                st.subheader("Test Coverage Analysis")
+
+                st.markdown(result)
+
+            except Exception as e:
+
+                st.error(
+                    "Failed to analyze coverage"
                 )
 
                 st.exception(e)
