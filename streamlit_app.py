@@ -11,7 +11,9 @@ from app.prompts import (
     API_TEST_CASE_PROMPT,
     PLAYWRIGHT_SCRIPT_PROMPT,
     QUALITY_SCORE_PROMPT,
-    COVERAGE_ANALYSIS_PROMPT
+    COVERAGE_ANALYSIS_PROMPT,
+    RISK_ANALYSIS_PROMPT
+
 )
 from app.export_service import convert_df_to_excel
 from datetime import datetime
@@ -52,7 +54,7 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7= st.columns(7)
+button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8= st.columns(8)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -74,6 +76,9 @@ with button_col6:
 
 with button_col7:
     coverage_analysis = st.button("Coverage Analysis")
+
+with button_col8:
+    risk_analysis = st.button("Risk Analysis")
 
 
 if generate_tc:
@@ -442,5 +447,30 @@ if coverage_analysis:
                 st.error(
                     "Failed to analyze coverage"
                 )
+
+                st.exception(e)
+
+
+if risk_analysis:
+
+    if requirement.strip():
+
+        prompt = RISK_ANALYSIS_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Risks..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                st.subheader("Risk Based Testing Analysis")
+
+                st.markdown(result)
+
+            except Exception as e:
+
+                st.error("Failed to analyze risks")
 
                 st.exception(e)

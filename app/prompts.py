@@ -192,3 +192,21 @@ Use this structure:
 Requirement:
 {requirement}
 """
+
+
+RISK_ANALYSIS_PROMPT = """
+Act as a Senior QA Lead.
+
+Analyze the requirement and identify:
+
+1. High Risk Areas
+2. Business Critical Functions
+3. Security Concerns
+4. Recommended Testing Types
+5. Testing Priority
+
+Return response in markdown format.
+
+Requirement:
+{requirement}
+"""
