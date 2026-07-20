@@ -1,7 +1,20 @@
 # 🧪 AI QA Assistant
 
-An AI-powered QA productivity tool that generates software test cases from requirements using **Gemini AI** and **Streamlit**. The application helps QA engineers improve testing efficiency by generating structured test cases, analyzing requirement gaps, creating test data, and exporting results to Excel.
+An AI-powered QA productivity tool that helps software testers automate and accelerate the test design process using Google Gemini AI and Streamlit.
 
+The application analyzes software requirements and automatically generates comprehensive test cases, identifies requirement gaps, creates realistic test data, and produces API test scenarios. It also supports exporting results to Excel and text formats, making it easier for QA teams to integrate AI into their daily testing workflow.
+
+Key Features
+✅ AI-generated functional and negative test cases
+✅ Requirement Gap Analysis to identify missing or ambiguous requirements
+✅ AI-generated test data for different validation scenarios
+✅ API test case generation from API requirements
+✅ Export generated test cases to Excel
+✅ Download generated outputs as text files
+✅ Interactive and user-friendly Streamlit interface
+✅ Powered by Google Gemini AI for intelligent test generation
+
+This project demonstrates how Generative AI can significantly reduce manual effort in software testing while improving test coverage, consistency, and overall QA productivity.
 ---
 
 ## 🚀 Features
