@@ -12,7 +12,8 @@ from app.prompts import (
     PLAYWRIGHT_SCRIPT_PROMPT,
     QUALITY_SCORE_PROMPT,
     COVERAGE_ANALYSIS_PROMPT,
-    RISK_ANALYSIS_PROMPT
+    RISK_ANALYSIS_PROMPT,
+    DEFECT_PREDICTION_PROMPT
 
 )
 from app.export_service import convert_df_to_excel
@@ -54,7 +55,7 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8= st.columns(8)
+button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9= st.columns(9)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -79,6 +80,9 @@ with button_col7:
 
 with button_col8:
     risk_analysis = st.button("Risk Analysis")
+
+with button_col9:
+    defect_prediction = st.button("Defect Prediction")
 
 
 if generate_tc:
@@ -472,5 +476,30 @@ if risk_analysis:
             except Exception as e:
 
                 st.error("Failed to analyze risks")
+
+                st.exception(e)
+
+
+if defect_prediction:
+
+    if requirement.strip():
+
+        prompt = DEFECT_PREDICTION_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Predicting Potential Defects..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                st.subheader("AI Defect Prediction")
+
+                st.markdown(result)
+
+            except Exception as e:
+
+                st.error("Failed to predict defects")
 
                 st.exception(e)

@@ -210,3 +210,41 @@ Return response in markdown format.
 Requirement:
 {requirement}
 """
+
+
+DEFECT_PREDICTION_PROMPT = """
+Act as a Senior QA Lead with experience in defect prevention.
+
+Analyze the following requirement and identify:
+
+1. Potential defect-prone areas
+2. Possible production issues
+3. Likely defect severity
+4. Recommended testing focus
+5. Suggestions to reduce defects
+
+Return the response in markdown format using the following structure:
+
+## Potential Defect-Prone Areas
+
+- Point
+
+## Possible Production Issues
+
+- Point
+
+## Likely Severity
+
+High / Medium / Low
+
+## Recommended Testing Focus
+
+- Point
+
+## Prevention Suggestions
+
+- Point
+
+Requirement:
+{requirement}
+"""
