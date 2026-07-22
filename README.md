@@ -13,6 +13,8 @@ Key Features
 ✅ Download generated outputs as text files
 ✅ Interactive and user-friendly Streamlit interface
 ✅ Powered by Google Gemini AI for intelligent test generation
+✅ Risk Analysis
+✅ Defect Prediction
 
 This project demonstrates how Generative AI can significantly reduce manual effort in software testing while improving test coverage, consistency, and overall QA productivity.
 ---
