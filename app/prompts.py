@@ -248,3 +248,68 @@ High / Medium / Low
 Requirement:
 {requirement}
 """
+
+
+RTM_PROMPT = """
+Act as a Senior QA Engineer.
+
+Analyze the requirement and generate a Requirement Traceability Matrix.
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+  {{
+    "requirement_id": "REQ001",
+    "requirement": "",
+    "mapped_test_case": "",
+    "coverage_status": "Covered"
+  }}
+]
+
+If a requirement is not covered, write:
+
+"mapped_test_case": "Not Available"
+
+"coverage_status": "Missing"
+
+Requirement:
+{requirement}
+"""
+
+
+SMART_RTM_PROMPT = """
+Act as a Senior QA Lead.
+
+You are given:
+
+1. Software Requirement
+2. Generated Test Cases
+
+Review whether every requirement is covered by the generated test cases.
+
+Return ONLY valid JSON.
+
+[
+    {{
+        "requirement": "",
+        "status": "Covered",
+        "missing_scenario": "None",
+        "recommendation": "Good Coverage"
+    }}
+]
+
+Status should be one of:
+- Covered
+- Partial
+- Missing
+
+Requirement:
+
+{requirement}
+
+Generated Test Cases:
+
+{test_cases}
+"""

@@ -13,7 +13,8 @@ from app.prompts import (
     QUALITY_SCORE_PROMPT,
     COVERAGE_ANALYSIS_PROMPT,
     RISK_ANALYSIS_PROMPT,
-    DEFECT_PREDICTION_PROMPT
+    DEFECT_PREDICTION_PROMPT,
+    SMART_RTM_PROMPT
 
 )
 from app.export_service import convert_df_to_excel
@@ -55,7 +56,7 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9= st.columns(9)
+button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9, button_col10= st.columns(10)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -83,6 +84,9 @@ with button_col8:
 
 with button_col9:
     defect_prediction = st.button("Defect Prediction")
+
+with button_col10:
+    generate_rtm = st.button("Requirement Traceability Matrix")
 
 
 if generate_tc:
@@ -117,6 +121,12 @@ if generate_tc:
                         "Expected Result",
                         "Priority"
                     ]
+
+                    # Store for Smart RTM
+                    st.session_state["generated_testcases"] = df.copy()
+                    st.session_state["requirement"] = requirement
+
+                    st.success("✅ Test cases stored successfully.")
 
                     excel_file = convert_df_to_excel(df)
 
@@ -503,3 +513,108 @@ if defect_prediction:
                 st.error("Failed to predict defects")
 
                 st.exception(e)
+
+
+if generate_rtm:
+
+    if (
+    "generated_testcases" not in st.session_state
+    or st.session_state["generated_testcases"].empty
+    ):
+        
+        st.warning("Please generate test cases first.")
+        st.stop()
+
+    requirement_text = st.session_state["requirement"]
+
+    testcases = st.session_state["generated_testcases"]
+
+    st.write(testcases)
+
+    test_cases = "\n".join(
+                st.session_state["generated_testcases"]["Scenario"].tolist()
+            )
+
+    prompt = SMART_RTM_PROMPT.format(
+        requirement=requirement_text,
+        test_cases = test_cases
+    )
+
+    with st.spinner("Generating Smart RTM..."):
+
+        try:
+
+            result = generate_test_cases(prompt)
+
+            result = result.replace("```json", "")
+            result = result.replace("```", "")
+            result = result.strip()
+
+            data = json.loads(result)
+
+            df = pd.DataFrame(data)
+
+            df.columns = [
+                "Requirement",
+                "Status",
+                "Missing Scenario",
+                "Recommendation"
+            ]
+
+            st.subheader("Smart Requirement Traceability Matrix")
+
+            st.dataframe(
+                df,
+                use_container_width=True
+            )
+
+            # Normalize status values
+            df["Status"] = df["Status"].str.strip().str.title()
+
+            covered = len(df[df["Status"] == "Covered"])
+            partial = len(df[df["Status"] == "Partial"])
+            missing = len(df[df["Status"] == "Missing"])
+
+            total = len(df)
+
+            coverage = round((covered / total) * 100) if total > 0 else 0
+
+            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+
+            with metric_col1:
+                st.metric("Covered", covered)
+
+            with metric_col2:
+                st.metric("Partial", partial)
+
+            with metric_col3:
+                st.metric("Missing", missing)
+
+            with metric_col4:
+                st.metric("Coverage", f"{coverage}%")
+
+            st.progress(coverage / 100)
+
+            if coverage >= 90:
+                st.success(f"Excellent Test Coverage ({coverage}%)")
+
+            elif coverage >= 70:
+                st.warning(f"Partial Test Coverage ({coverage}%)")
+
+            else:
+                st.error(f"Poor Test Coverage ({coverage}%)")
+
+            excel_file = convert_df_to_excel(df)
+
+            st.download_button(
+                label="Download Smart RTM",
+                data=excel_file,
+                file_name=f"Smart_RTM_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        except Exception as e:
+
+            st.error("Failed to generate Smart RTM")
+
+            st.exception(e)
