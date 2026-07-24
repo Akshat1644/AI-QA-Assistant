@@ -17,7 +17,12 @@ from app.prompts import (
     SMART_RTM_PROMPT
 
 )
-from app.export_service import convert_df_to_excel
+
+from app.export_service import (
+    convert_df_to_excel,
+    convert_df_to_excel,
+    convert_rtm_to_pdf
+)
 from datetime import datetime
 
 st.set_page_config(
@@ -517,30 +522,23 @@ if defect_prediction:
 
 if generate_rtm:
 
-    if (
-    "generated_testcases" not in st.session_state
-    or st.session_state["generated_testcases"].empty
-    ):
-        
-        st.warning("Please generate test cases first.")
+    if "generated_testcases" not in st.session_state or st.session_state["generated_testcases"].empty:
+
+        st.warning("⚠ Please generate test cases first.")
         st.stop()
 
     requirement_text = st.session_state["requirement"]
 
-    testcases = st.session_state["generated_testcases"]
-
-    st.write(testcases)
-
     test_cases = "\n".join(
-                st.session_state["generated_testcases"]["Scenario"].tolist()
-            )
+        st.session_state["generated_testcases"]["Scenario"].tolist()
+    )
 
     prompt = SMART_RTM_PROMPT.format(
         requirement=requirement_text,
-        test_cases = test_cases
+        test_cases=test_cases
     )
 
-    with st.spinner("Generating Smart RTM..."):
+    with st.spinner("Analyzing Requirement Coverage..."):
 
         try:
 
@@ -561,15 +559,19 @@ if generate_rtm:
                 "Recommendation"
             ]
 
-            st.subheader("Smart Requirement Traceability Matrix")
+            st.session_state["rtm_df"] = df
 
-            st.dataframe(
-                df,
-                use_container_width=True
+
+            # -----------------------------
+            # Normalize Status
+            # -----------------------------
+
+            df["Status"] = (
+                df["Status"]
+                .astype(str)
+                .str.strip()
+                .str.title()
             )
-
-            # Normalize status values
-            df["Status"] = df["Status"].str.strip().str.title()
 
             covered = len(df[df["Status"] == "Covered"])
             partial = len(df[df["Status"] == "Partial"])
@@ -579,42 +581,129 @@ if generate_rtm:
 
             coverage = round((covered / total) * 100) if total > 0 else 0
 
-            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+            st.session_state["coverage"] = coverage
+            st.session_state["covered"] = covered
+            st.session_state["partial"] = partial
+            st.session_state["missing"] = missing
 
-            with metric_col1:
-                st.metric("Covered", covered)
 
-            with metric_col2:
-                st.metric("Partial", partial)
+        except json.JSONDecodeError:
 
-            with metric_col3:
-                st.metric("Missing", missing)
+            st.error("Unable to parse Smart RTM response.")
 
-            with metric_col4:
-                st.metric("Coverage", f"{coverage}%")
-
-            st.progress(coverage / 100)
-
-            if coverage >= 90:
-                st.success(f"Excellent Test Coverage ({coverage}%)")
-
-            elif coverage >= 70:
-                st.warning(f"Partial Test Coverage ({coverage}%)")
-
-            else:
-                st.error(f"Poor Test Coverage ({coverage}%)")
-
-            excel_file = convert_df_to_excel(df)
-
-            st.download_button(
-                label="Download Smart RTM",
-                data=excel_file,
-                file_name=f"Smart_RTM_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            st.code(result)
 
         except Exception as e:
 
-            st.error("Failed to generate Smart RTM")
+            st.error("Failed to generate Smart RTM.")
 
             st.exception(e)
+
+
+
+# ============================================
+# Display RTM from Session State
+# ============================================
+
+if "rtm_df" in st.session_state:
+
+    df = st.session_state["rtm_df"]
+
+    coverage = st.session_state["coverage"]
+    covered = st.session_state["covered"]
+    partial = st.session_state["partial"]
+    missing = st.session_state["missing"]
+
+    # -----------------------------
+    # Dashboard
+    # -----------------------------
+
+    metric1, metric2, metric3, metric4 = st.columns(4)
+
+    metric1.metric("🟢 Covered", covered)
+    metric2.metric("🟡 Partial", partial)
+    metric3.metric("🔴 Missing", missing)
+    metric4.metric("Coverage", f"{coverage}%")
+
+    st.progress(coverage / 100)
+
+    if coverage >= 90:
+        st.success("🟢 Overall Verdict : Excellent Test Coverage")
+
+    elif coverage >= 70:
+        st.warning("🟡 Overall Verdict : Requirement Needs Minor Improvements")
+
+    else:
+        st.error("🔴 Overall Verdict : High Risk Requirement")
+
+    st.divider()
+
+    st.subheader("📄 Smart Requirement Traceability Matrix")
+
+    for index, row in df.iterrows():
+
+        if row["Status"] == "Covered":
+            icon = "🟢"
+
+        elif row["Status"] == "Partial":
+            icon = "🟡"
+
+        else:
+            icon = "🔴"
+
+        with st.expander(
+            f"{icon} Requirement {index+1}",
+            expanded=False
+        ):
+
+            st.markdown("### 📌 Requirement")
+            st.info(row["Requirement"])
+
+            st.markdown("### 📊 Status")
+            st.write(f"**{icon} {row['Status']}**")
+
+            st.markdown("### ❌ Missing Scenarios")
+
+            missing_points = str(row["Missing Scenario"]).split(",")
+
+            for point in missing_points:
+
+                point = point.strip()
+
+                if point and point.lower() != "none":
+                    st.markdown(f"- {point}")
+
+            if str(row["Missing Scenario"]).lower() == "none":
+                st.success("No Missing Scenario")
+
+            st.markdown("### 💡 Recommendation")
+
+            recommendation_text = str(row["Recommendation"])
+
+            st.markdown(recommendation_text)
+
+    st.divider()
+
+    excel_file = convert_df_to_excel(df)
+
+    st.download_button(
+        label="📊 Download Excel",
+        data=excel_file,
+        file_name="Smart_RTM.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    pdf_file = convert_rtm_to_pdf(
+        df,
+        coverage,
+        covered,
+        partial,
+        missing
+    )
+
+    st.download_button(
+        label="📄 Download Executive Report",
+        data=pdf_file,
+        file_name="QA_Executive_Report.pdf",
+        mime="application/pdf"
+    )
