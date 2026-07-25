@@ -195,21 +195,39 @@ Requirement:
 
 
 RISK_ANALYSIS_PROMPT = """
-Act as a Senior QA Lead.
+You are a Senior QA Lead and Test Architect.
 
-Analyze the requirement and identify:
+Analyze the software requirement and identify potential testing risks.
 
-1. High Risk Areas
-2. Business Critical Functions
-3. Security Concerns
-4. Recommended Testing Types
-5. Testing Priority
+Return ONLY valid JSON.
 
-Return response in markdown format.
+Format:
+
+[
+    {{
+        "risk_area": "Authentication",
+        "severity": "High",
+        "reason": "Password complexity is not specified.",
+        "recommendation": "Add password validation and account lockout test cases."
+    }}
+]
+
+Rules:
+
+1. Identify all major testing risks.
+2. Severity must be one of:
+   - High
+   - Medium
+   - Low
+3. Keep reasons concise.
+4. Recommendations should be actionable.
+5. Return ONLY JSON.
+6. Do not include markdown or explanations.
 
 Requirement:
 {requirement}
 """
+
 
 
 DEFECT_PREDICTION_PROMPT = """

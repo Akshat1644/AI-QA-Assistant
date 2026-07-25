@@ -470,6 +470,7 @@ if coverage_analysis:
                 st.exception(e)
 
 
+
 if risk_analysis:
 
     if requirement.strip():
@@ -484,15 +485,62 @@ if risk_analysis:
 
                 result = generate_test_cases(prompt)
 
-                st.subheader("Risk Based Testing Analysis")
+                result = result.replace("```json", "")
+                result = result.replace("```", "")
+                result = result.strip()
 
-                st.markdown(result)
+                data = json.loads(result)
+
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Risk Area",
+                    "Severity",
+                    "Reason",
+                    "Recommendation"
+                ]
+
+                # Store in Session State
+                st.session_state["risk_df"] = df
+
+                # Normalize Severity
+                df["Severity"] = (
+                    df["Severity"]
+                    .astype(str)
+                    .str.strip()
+                    .str.title()
+                )
+
+                high = len(df[df["Severity"] == "High"])
+                medium = len(df[df["Severity"] == "Medium"])
+                low = len(df[df["Severity"] == "Low"])
+
+                total = len(df)
+
+                # Risk Score
+                risk_score = round(
+                    ((high * 3) + (medium * 2) + (low * 1))
+                    / (total * 3) * 100
+                ) if total > 0 else 0
+
+                st.session_state["risk_score"] = risk_score
+                st.session_state["high_risk"] = high
+                st.session_state["medium_risk"] = medium
+                st.session_state["low_risk"] = low
+
+            except json.JSONDecodeError:
+
+                st.error("Unable to parse Risk Analysis response.")
+
+                st.code(result)
 
             except Exception as e:
 
-                st.error("Failed to analyze risks")
+                st.error("Failed to analyze risks.")
 
                 st.exception(e)
+
+
 
 
 if defect_prediction:
@@ -690,7 +738,8 @@ if "rtm_df" in st.session_state:
         label="📊 Download Excel",
         data=excel_file,
         file_name="Smart_RTM.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="rtm_excel_download_for_rtm"
     )
 
     pdf_file = convert_rtm_to_pdf(
@@ -705,5 +754,87 @@ if "rtm_df" in st.session_state:
         label="📄 Download Executive Report",
         data=pdf_file,
         file_name="QA_Executive_Report.pdf",
-        mime="application/pdf"
+        mime="application/pdf",
+        key="rtm_pdf_download_for_rtm"
     )
+
+
+if "risk_df" in st.session_state:
+
+    df = st.session_state["risk_df"]
+
+    risk_score = st.session_state["risk_score"]
+
+    high = st.session_state["high_risk"]
+    medium = st.session_state["medium_risk"]
+    low = st.session_state["low_risk"]
+
+    st.subheader("⚠️ AI Risk Analysis Dashboard")
+
+    metric1, metric2, metric3, metric4 = st.columns(4)
+
+    metric1.metric("🔴 High", high)
+    metric2.metric("🟡 Medium", medium)
+    metric3.metric("🟢 Low", low)
+    metric4.metric("Risk Score", f"{risk_score}%")
+
+    st.progress(risk_score / 100)
+
+    if risk_score >= 70:
+        st.error("🔴 Overall Risk: High")
+
+    elif risk_score >= 40:
+        st.warning("🟡 Overall Risk: Medium")
+
+    else:
+        st.success("🟢 Overall Risk: Low")
+
+    st.divider()
+
+    st.subheader("📋 Risk Details")
+
+    for index, row in df.iterrows():
+
+        if row["Severity"] == "High":
+            icon = "🔴"
+
+        elif row["Severity"] == "Medium":
+            icon = "🟡"
+
+        else:
+            icon = "🟢"
+
+        with st.expander(
+            f"{icon} {row['Risk Area']}",
+            expanded=False
+        ):
+
+            st.markdown("### 📌 Risk Area")
+            st.info(row["Risk Area"])
+
+            st.markdown("### 📊 Severity")
+            st.write(f"**{icon} {row['Severity']}**")
+
+            st.markdown("### ❗ Reason")
+            st.write(row["Reason"])
+
+            st.markdown("### 💡 Recommendation")
+            st.success(row["Recommendation"]) 
+
+    excel_file = convert_df_to_excel(df)
+
+    st.download_button(
+        label="📊 Download Excel",
+        data=excel_file,
+        file_name="Risk_Analysis.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="risk_excel_download_for_risk"
+    )
+
+        # st.download_button(
+        # label="📄 Download Risk Report",
+        # data=pdf_file,
+        # file_name="Risk_Report.pdf",
+        # mime="application/pdf",
+        # key="risk_pdf_download_for_risk"
+        # )
