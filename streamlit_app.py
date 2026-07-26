@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import re
+import logging
 
 from app.gemini_service import generate_test_cases
 from app.prompts import (
@@ -14,7 +15,8 @@ from app.prompts import (
     COVERAGE_ANALYSIS_PROMPT,
     RISK_ANALYSIS_PROMPT,
     DEFECT_PREDICTION_PROMPT,
-    SMART_RTM_PROMPT
+    SMART_RTM_PROMPT,
+    COMPLETENESS_ANALYSIS_PROMPT
 
 )
 
@@ -61,7 +63,8 @@ requirement = st.text_area(
 )
 
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9, button_col10= st.columns(10)
+button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9, button_col10 = st.columns(10)
+button_col11 , button_col12= st.columns(2)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -93,6 +96,8 @@ with button_col9:
 with button_col10:
     generate_rtm = st.button("Requirement Traceability Matrix")
 
+with button_col11:
+    completeness_analysis = st.button("📋 Requirement Completeness")
 
 if generate_tc:
 
@@ -165,15 +170,15 @@ if generate_tc:
 
                 except json.JSONDecodeError:
 
-                    st.error("Unable to parse JSON response")
+                    st.error("The AI returned an invalid response. Please try again.")
 
-                    st.code(result)
+                    if DEBUG:
+                        st.code(result)
 
                 except Exception as e:
 
-                    st.error("Failed to generate test cases")
-
-                    st.exception(e)
+                    logging.exception(e)
+                    st.error("Unable to generate test cases. Please try again.")
 
 
 
@@ -192,7 +197,6 @@ if analyze_gap:
                 st.subheader("Requirement Gap Analysis")
 
                 st.markdown(result)
-
 
 
 if generate_data:
@@ -232,9 +236,8 @@ if generate_data:
 
                 except Exception as e:
 
-                    st.error(e)
-
-                    st.code(result)
+                    logging.exception(e)
+                    st.error("Unable to generate test data. Please try again.")
 
 
 if generate_api_tc:
@@ -285,9 +288,8 @@ if generate_api_tc:
 
             except Exception as e:
 
-                st.error(e)
-
-                st.code(result)
+                logging.exception(e)
+                st.error("Unable to generate API test cases. Please try again.")
 
 
 
@@ -334,9 +336,10 @@ if generate_script:
 
             except Exception as e:
 
-                st.error("Failed to generate Playwright script")
-
-                st.exception(e)
+                logging.exception(e)
+                
+                st.error("Something went wrong while processing your request. Please try again.")
+                
 
 
 if quality_score:
@@ -435,11 +438,10 @@ if quality_score:
 
             except Exception as e:
 
-                st.error(
-                    "Failed to analyze requirement quality"
-                )
-
-                st.exception(e)
+                logging.exception(e)
+                
+                st.error("Something went wrong while processing your request. Please try again.")
+                
 
 
 
@@ -463,11 +465,10 @@ if coverage_analysis:
 
             except Exception as e:
 
-                st.error(
-                    "Failed to analyze coverage"
-                )
-
-                st.exception(e)
+                logging.exception(e)
+                
+                st.error("Something went wrong while processing your request. Please try again.")
+                
 
 
 
@@ -530,17 +531,16 @@ if risk_analysis:
 
             except json.JSONDecodeError:
 
-                st.error("Unable to parse Risk Analysis response.")
-
-                st.code(result)
+                st.error("The AI returned an invalid response. Please try again.")
+                
+                if DEBUG:
+                    st.code(result)
 
             except Exception as e:
 
-                st.error("Failed to analyze risks.")
-
-                st.exception(e)
-
-
+                logging.exception(e)
+                st.error("Unable to complete the risk analysis. Please try again.")
+                
 
 
 if defect_prediction:
@@ -563,9 +563,10 @@ if defect_prediction:
 
             except Exception as e:
 
-                st.error("Failed to predict defects")
-
-                st.exception(e)
+                logging.exception(e)
+                
+                st.error("Something went wrong while processing your request. Please try again.")
+                
 
 
 if generate_rtm:
@@ -637,15 +638,16 @@ if generate_rtm:
 
         except json.JSONDecodeError:
 
-            st.error("Unable to parse Smart RTM response.")
-
-            st.code(result)
+            st.error("The AI returned an invalid response. Please try again.")
+            
+            if DEBUG:
+                st.code(result)
 
         except Exception as e:
 
-            st.error("Failed to generate Smart RTM.")
-
-            st.exception(e)
+            logging.exception(e)
+            st.error("Unable to generate the Smart RTM. Please try again.")
+            
 
 
 
@@ -759,6 +761,7 @@ if "rtm_df" in st.session_state:
     )
 
 
+
 if "risk_df" in st.session_state:
 
     df = st.session_state["risk_df"]
@@ -831,10 +834,146 @@ if "risk_df" in st.session_state:
         key="risk_excel_download_for_risk"
     )
 
-        # st.download_button(
-        # label="📄 Download Risk Report",
-        # data=pdf_file,
-        # file_name="Risk_Report.pdf",
-        # mime="application/pdf",
-        # key="risk_pdf_download_for_risk"
-        # )
+
+
+if completeness_analysis:
+
+    if requirement.strip():
+
+        prompt = COMPLETENESS_ANALYSIS_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Requirement Completeness..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                result = result.replace("```json", "")
+                result = result.replace("```", "")
+                result = result.strip()
+
+                data = json.loads(result)
+
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Category",
+                    "Status",
+                    "Details",
+                    "Recommendation"
+                ]
+
+                st.session_state["completeness_df"] = df
+
+                df["Status"] = (
+                    df["Status"]
+                    .astype(str)
+                    .str.strip()
+                    .str.title()
+                )
+
+                complete = len(df[df["Status"] == "Complete"])
+                partial = len(df[df["Status"] == "Partial"])
+                missing = len(df[df["Status"] == "Missing"])
+
+                total = len(df)
+
+                score = round(
+                    ((complete * 3) + (partial * 2) + (missing * 1))
+                    / (total * 3) * 100
+                ) if total > 0 else 0
+
+                st.session_state["completeness_score"] = score
+                st.session_state["complete"] = complete
+                st.session_state["partial_complete"] = partial
+                st.session_state["missing_complete"] = missing
+
+            except json.JSONDecodeError:
+
+                st.error("The AI returned an invalid response. Please try again.")
+                
+                if DEBUG:
+                    st.code(result)
+
+            except Exception as e:
+
+                logging.exception(e)
+                st.error("Unable to analyze requirement completeness. Please try again.")
+                
+
+
+if "completeness_df" in st.session_state:
+
+    df = st.session_state["completeness_df"]
+
+    score = st.session_state["completeness_score"]
+
+    complete = st.session_state["complete"]
+    partial = st.session_state["partial_complete"]
+    missing = st.session_state["missing_complete"]
+
+    st.subheader("📋 Requirement Completeness Dashboard")
+
+    metric1, metric2, metric3, metric4 = st.columns(4)
+
+    metric1.metric("✅ Complete", complete)
+    metric2.metric("🟡 Partial", partial)
+    metric3.metric("🔴 Missing", missing)
+    metric4.metric("Score", f"{score}%")
+
+    st.progress(score / 100)
+
+    if score >= 90:
+        st.success("🟢 Requirement is Ready for Testing")
+
+    elif score >= 70:
+        st.warning("🟡 Requirement Needs Minor Improvements")
+
+    else:
+        st.error("🔴 Requirement Needs Significant Refinement")
+
+
+    st.divider()
+
+    st.subheader("📄 Requirement Review")
+
+    for index, row in df.iterrows():
+
+        if row["Status"] == "Complete":
+            icon = "🟢"
+
+        elif row["Status"] == "Partial":
+            icon = "🟡"
+
+        else:
+            icon = "🔴"
+
+        with st.expander(
+            f"{icon} {row['Category']}",
+            expanded=False
+        ):
+
+            st.markdown("### 📌 Category")
+            st.info(row["Category"])
+
+            st.markdown("### 📊 Status")
+            st.write(f"**{icon} {row['Status']}**")
+
+            st.markdown("### 📝 Details")
+            st.write(row["Details"])
+
+            st.markdown("### 💡 Recommendation")
+            st.success(row["Recommendation"])
+
+
+    excel_file = convert_df_to_excel(df)
+
+    st.download_button(
+        label="📊 Download Excel",
+        data=excel_file,
+        file_name="Requirement_Completeness.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="requirement_completeness_excel"
+    )

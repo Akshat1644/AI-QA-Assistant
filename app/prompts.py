@@ -331,3 +331,51 @@ Generated Test Cases:
 
 {test_cases}
 """
+
+
+
+COMPLETENESS_ANALYSIS_PROMPT = """
+You are a Senior QA Lead and Business Analyst.
+
+Review the software requirement and evaluate whether it is complete and ready for testing.
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+    {{
+        "category": "Business Rules",
+        "status": "Partial",
+        "details": "Password complexity requirements are missing.",
+        "recommendation": "Define password length, special characters and validation rules."
+    }}
+]
+
+Rules:
+
+1. Review the following categories:
+   - Functional Requirements
+   - Business Rules
+   - Acceptance Criteria
+   - Validation Rules
+   - Error Handling
+   - Security
+   - Performance
+   - Edge Cases
+   - Testability
+
+2. Status must be one of:
+   - Complete
+   - Partial
+   - Missing
+
+3. Keep details concise.
+
+4. Recommendations should be actionable.
+
+5. Return ONLY valid JSON.
+
+Requirement:
+{requirement}
+"""
