@@ -379,3 +379,83 @@ Rules:
 Requirement:
 {requirement}
 """
+
+
+
+BUG_PREDICTION_PROMPT = """
+You are an experienced QA Architect with expertise in defect prevention and risk-based testing.
+
+Analyze the software requirement below and predict the areas most likely to contain software defects.
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+    {{
+        "module": "Authentication",
+        "risk": "High",
+        "probability": 95,
+        "reason": [
+            "Password validation rules are not clearly defined.",
+            "No password complexity requirement is mentioned.",
+            "Boundary conditions are missing."
+        ],
+        "recommendation": [
+            "Perform boundary value testing.",
+            "Execute negative testing.",
+            "Validate password complexity rules."
+        ]
+    }}
+]
+
+Rules:
+
+1. Analyze these areas wherever applicable:
+   - Authentication
+   - Authorization
+   - Business Logic
+   - Input Validation
+   - Database
+   - API
+   - UI
+   - Session Management
+   - Security
+   - Performance
+   - Error Handling
+   - Edge Cases
+
+2. Probability must be an integer between 0 and 100.
+
+3. Risk must be exactly one of:
+   - High
+   - Medium
+   - Low
+
+4. "reason" MUST always be a JSON array of strings.
+Never return a paragraph or a single string.
+
+Example:
+"reason": [
+    "Input validation rules are missing.",
+    "Password complexity is not specified.",
+    "Boundary conditions are undefined."
+]
+
+5. "recommendation" MUST always be a JSON array of strings.
+
+Example:
+"recommendation": [
+    "Perform boundary value testing.",
+    "Execute negative testing.",
+    "Validate password complexity."
+]
+
+6. Return ONLY valid JSON.
+   - No markdown.
+   - No explanations.
+   - No extra text.
+
+Requirement:
+{requirement}
+"""

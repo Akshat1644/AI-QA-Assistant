@@ -16,7 +16,8 @@ from app.prompts import (
     RISK_ANALYSIS_PROMPT,
     DEFECT_PREDICTION_PROMPT,
     SMART_RTM_PROMPT,
-    COMPLETENESS_ANALYSIS_PROMPT
+    COMPLETENESS_ANALYSIS_PROMPT,
+    BUG_PREDICTION_PROMPT
 
 )
 
@@ -97,7 +98,13 @@ with button_col10:
     generate_rtm = st.button("Requirement Traceability Matrix")
 
 with button_col11:
-    completeness_analysis = st.button("📋 Requirement Completeness")
+    completeness_analysis = st.button("Requirement Completeness")
+
+with button_col12:
+    bug_prediction = st.button("AI Bug Prediction")
+
+
+
 
 if generate_tc:
 
@@ -976,4 +983,244 @@ if "completeness_df" in st.session_state:
         file_name="Requirement_Completeness.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="requirement_completeness_excel"
+    )
+
+
+
+
+if bug_prediction:
+
+    if requirement.strip():
+
+        prompt = BUG_PREDICTION_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Predicting Potential Bug Hotspots..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                result = result.replace("```json", "")
+                result = result.replace("```", "")
+                result = result.strip()
+
+                data = json.loads(result)
+
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Module",
+                    "Risk",
+                    "Probability",
+                    "Reason",
+                    "Recommendation"
+                ]
+
+                st.session_state["bug_prediction_df"] = df
+
+                df["Risk"] = (
+                    df["Risk"]
+                    .astype(str)
+                    .str.strip()
+                    .str.title()
+                )
+
+                df["Probability"] = (
+                    pd.to_numeric(
+                        df["Probability"],
+                        errors="coerce"
+                    )
+                    .fillna(0)
+                    .astype(int)
+                )
+
+                high = len(df[df["Risk"] == "High"])
+                medium = len(df[df["Risk"] == "Medium"])
+                low = len(df[df["Risk"] == "Low"])
+
+                overall_probability = round(
+                    df["Probability"].mean()
+                )
+
+                st.session_state["bug_high"] = high
+                st.session_state["bug_medium"] = medium
+                st.session_state["bug_low"] = low
+                st.session_state["bug_score"] = overall_probability
+
+            except json.JSONDecodeError:
+
+                st.error("Unable to parse Bug Prediction response.")
+
+            except Exception as e:
+
+                logging.exception(e)
+
+                st.error("Unable to predict software defects. Please try again.")
+
+
+
+if "bug_prediction_df" in st.session_state:
+
+    df = st.session_state["bug_prediction_df"]
+
+    df = df.sort_values(
+        by="Probability",
+        ascending=False
+    ).reset_index(drop=True)
+
+    ranking = []
+
+    for i in range(len(df)):
+
+        if i == 0:
+            ranking.append("🥇")
+
+        elif i == 1:
+            ranking.append("🥈")
+
+        elif i == 2:
+            ranking.append("🥉")
+
+        else:
+            ranking.append(str(i + 1))
+
+    df.insert(0, "Rank", ranking)
+
+
+    score = st.session_state["bug_score"]
+
+    high = st.session_state["bug_high"]
+    medium = st.session_state["bug_medium"]
+    low = st.session_state["bug_low"]
+
+    st.subheader("🤖 AI Bug Prediction Dashboard")
+
+    metric1, metric2, metric3, metric4 = st.columns(4)
+
+    metric1.metric("🔴 High", high)
+    metric2.metric("🟡 Medium", medium)
+    metric3.metric("🟢 Low", low)
+
+    if score >= 70:
+        verdict = "Critical"
+
+    elif score >= 40:
+        verdict = "Moderate"
+
+    else:
+        verdict = "Low"
+
+    metric4.metric(
+        "Prediction Score",
+        f"{score}%",
+        verdict
+    )
+
+    st.progress(score / 100)
+
+    if score >= 70:
+        st.error("🔴 High Probability of Defects")
+
+    elif score >= 40:
+        st.warning("🟡 Moderate Probability of Defects")
+
+    else:
+        st.success("🟢 Low Probability of Defects")
+
+        # ---------------------------------
+        # Bug Hotspot Ranking
+        # ---------------------------------
+
+        ranking_df = df.copy()
+
+        ranking_df["Risk"] = ranking_df["Risk"].replace({
+            "High": "🔴 High",
+            "Medium": "🟡 Medium",
+            "Low": "🟢 Low"
+        })
+
+        ranking_df["Probability"] = (
+            ranking_df["Probability"].astype(str) + "%"
+        )
+
+        st.subheader("🏆 Bug Hotspot Ranking")
+
+        st.dataframe(
+            ranking_df[
+                [
+                    "Rank",
+                    "Module",
+                    "Risk",
+                    "Probability"
+                ]
+            ],
+            hide_index=True,
+            use_container_width=True
+        )
+
+        st.divider()
+
+    st.subheader("🐞 Potential Bug Hotspots")
+
+    for index, row in df.iterrows():
+
+        if row["Risk"] == "High":
+            icon = "🔴"
+
+        elif row["Risk"] == "Medium":
+            icon = "🟡"
+
+        else:
+            icon = "🟢"
+
+        with st.expander(
+            f"{icon} {row['Module']}",
+            expanded=False
+        ):
+
+            st.markdown("### 📌 Module")
+            st.info(row["Module"])
+
+            st.markdown("### ⚠️ Risk")
+
+            st.write(f"**{icon} {row['Risk']}**")
+
+            st.markdown("### 📊 Probability")
+
+            st.progress(int(row["Probability"]) / 100)
+
+            st.write(f"**{row['Probability']}%**")
+
+            st.markdown("### ❓ Reason")
+
+            if isinstance(row["Reason"], list):
+
+                for point in row["Reason"]:
+                    st.markdown(f"- {point}")
+
+            else:
+                st.markdown(f"- {row['Reason']}")
+
+
+            st.markdown("### 💡 Recommendation")
+
+            if isinstance(row["Recommendation"], list):
+
+                for rec in row["Recommendation"]:
+                    st.markdown(f"- {rec}")
+
+            else:
+
+                st.markdown(f"- {row['Recommendation']}")
+
+    excel_file = convert_df_to_excel(df)
+
+    st.download_button(
+        label="📊 Download Excel",
+        data=excel_file,
+        file_name="Bug_Prediction.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="bug_prediction_excel"
     )
