@@ -2,7 +2,7 @@
 
 An AI-powered QA productivity tool built with Python, Streamlit, and Google Gemini AI to streamline and accelerate the software testing lifecycle.
 
-The application analyzes software requirements and automatically generates structured manual test cases, API test scenarios, realistic test data, and requirement gap analyses. It also supports exporting results to Excel and text formats, enabling QA engineers to efficiently document, review, and execute test artifacts. By leveraging generative AI, the tool reduces manual effort, improves requirement coverage, and enhances the overall productivity of QA teams.
+The application analyzes software requirements and automatically generates structured manual test cases, API test scenarios, realistic test data,bug prediction using AI and requirement gap analyses. It also supports exporting results to Excel and text formats, enabling QA engineers to efficiently document, review, and execute test artifacts. By leveraging generative AI, the tool reduces manual effort, improves requirement coverage, and enhances the overall productivity of QA teams.
 
 Key Features
 ✅ AI-generated functional and negative test cases
