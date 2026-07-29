@@ -17,7 +17,8 @@ from app.prompts import (
     DEFECT_PREDICTION_PROMPT,
     SMART_RTM_PROMPT,
     COMPLETENESS_ANALYSIS_PROMPT,
-    BUG_PREDICTION_PROMPT
+    BUG_PREDICTION_PROMPT,
+    DEFECT_REPORT_PROMPT
 
 )
 
@@ -65,7 +66,7 @@ requirement = st.text_area(
 
 # CREATE BUTTONS
 button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9, button_col10 = st.columns(10)
-button_col11 , button_col12= st.columns(2)
+button_col11 , button_col12 , button_col13= st.columns(3)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -102,6 +103,9 @@ with button_col11:
 
 with button_col12:
     bug_prediction = st.button("AI Bug Prediction")
+
+with button_col13:
+    defect_report = st.button("Defect Report")
 
 
 
@@ -1223,4 +1227,216 @@ if "bug_prediction_df" in st.session_state:
         file_name="Bug_Prediction.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="bug_prediction_excel"
+    )
+
+
+
+# ==========================================================
+# AI Defect Report
+# ==========================================================
+
+if defect_report:
+
+    if requirement.strip():
+
+        prompt = DEFECT_REPORT_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Generating AI Defect Report..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                result = result.replace("```json", "")
+                result = result.replace("```", "")
+                result = result.strip()
+
+                data = json.loads(result)
+
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Bug Summary",
+                    "Description",
+                    "Steps To Reproduce",
+                    "Expected Result",
+                    "Actual Result",
+                    "Severity",
+                    "Priority",
+                    "Root Cause",
+                    "Suggested Fix"
+                ]
+
+                st.session_state["defect_df"] = df
+
+            except json.JSONDecodeError:
+
+                st.error("Unable to parse Defect Report.")
+
+                st.code(result)
+
+            except Exception:
+
+                st.error("Failed to generate Defect Report.")
+
+
+# ==========================================================
+# Display Dashboard
+# ==========================================================
+
+if "defect_df" in st.session_state:
+
+    df = st.session_state["defect_df"]
+
+    row = df.iloc[0]
+
+    from datetime import datetime
+
+    bug_id = f"AI-BUG-{datetime.now().strftime('%Y%m%d')}-001"
+
+    st.subheader("🐞 AI Defect Report Dashboard")
+
+    st.info(f"🆔 **Bug ID:** {bug_id}")
+
+    # -------------------------------------
+    # Metrics
+    # -------------------------------------
+
+    metric1, metric2 = st.columns(2)
+
+    severity = row["Severity"]
+    priority = row["Priority"]
+
+    if severity == "Critical":
+        severity_display = "🚨 Critical"
+
+    elif severity == "High":
+        severity_display = "🔴 High"
+
+    elif severity == "Medium":
+        severity_display = "🟡 Medium"
+
+    else:
+        severity_display = "🟢 Low"
+
+    if priority == "High":
+        priority_display = "🔴 High"
+
+    elif priority == "Medium":
+        priority_display = "🟡 Medium"
+
+    else:
+        priority_display = "🟢 Low"
+
+    metric1.metric(
+        "Severity",
+        severity_display
+    )
+
+    metric2.metric(
+        "Priority",
+        priority_display
+    )
+
+    st.divider()
+
+    # -------------------------------------
+    # Bug Summary
+    # -------------------------------------
+
+    st.markdown("## 🐞 Bug Summary")
+
+    st.error(f"**{row['Bug Summary']}**")
+
+    # -------------------------------------
+    # Description
+    # -------------------------------------
+
+    st.markdown("## 📝 Description")
+
+    st.info(row["Description"])
+
+    # -------------------------------------
+    # Steps To Reproduce
+    # -------------------------------------
+
+    st.markdown("## 🔄 Steps To Reproduce")
+
+    if isinstance(row["Steps To Reproduce"], list):
+
+        for i, step in enumerate(
+            row["Steps To Reproduce"],
+            start=1
+        ):
+
+            st.markdown(f"**{i}.** {step}")
+
+    else:
+
+        st.write(row["Steps To Reproduce"])
+    
+    # -------------------------------------
+    # Results
+    # -------------------------------------
+
+    st.markdown("## 📊 Result Comparison")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown("### ✅ Expected")
+
+        st.success(row["Expected Result"])
+
+    with col2:
+
+        st.markdown("### ❌ Actual")
+
+        st.error(row["Actual Result"])
+
+    # -------------------------------------
+    # Root Cause
+    # -------------------------------------
+
+    st.markdown("## 🔍 Root Cause")
+
+    if isinstance(row["Root Cause"], list):
+
+        for cause in row["Root Cause"]:
+            st.markdown(f"- {cause}")
+
+    else:
+
+        st.warning(row["Root Cause"])
+
+    # -------------------------------------
+    # Suggested Fix
+    # -------------------------------------
+
+    st.markdown("## 🛠 Suggested Fix")
+
+    if isinstance(row["Suggested Fix"], list):
+
+        for fix in row["Suggested Fix"]:
+            st.markdown(f"- {fix}")
+
+    else:
+
+        st.success(row["Suggested Fix"])
+
+    # -------------------------------------
+    # Download Excel
+    # -------------------------------------
+
+    excel_file = convert_df_to_excel(df)
+
+    st.download_button(
+        label="📊 Download Excel",
+        data=excel_file,
+        file_name="AI_Defect_Report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="defect_report_excel"
     )

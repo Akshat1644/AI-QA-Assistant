@@ -459,3 +459,61 @@ Example:
 Requirement:
 {requirement}
 """
+
+
+DEFECT_REPORT_PROMPT = """
+You are an experienced Senior QA Engineer.
+
+Based on the software requirement below, assume that a critical test case has failed.
+
+Generate a professional defect report.
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+    {{
+        "bug_summary": "Login fails with valid credentials",
+        "description": "Users cannot log in using valid email and password.",
+        "steps_to_reproduce": [
+            "Open Login Page",
+            "Enter valid email",
+            "Enter valid password",
+            "Click Login"
+        ],
+        "expected_result": "User should be redirected to Dashboard.",
+        "actual_result": "User remains on Login page with an error.",
+        "severity": "High",
+        "priority": "High",
+        "root_cause": [
+          "Authentication service validation failed.",
+          "Password comparison logic is incorrect."
+        ]
+        "suggested_fix": [
+          "Review authentication logic.",
+          "Add unit tests for login validation.",
+          "Verify API response handling."
+        ]
+    }}
+]
+
+Rules:
+
+1. Return ONLY JSON.
+2. Severity must be:
+   - Critical
+   - High
+   - Medium
+   - Low
+3. Priority must be:
+   - High
+   - Medium
+   - Low
+4. steps_to_reproduce MUST be an array.
+5. Make the defect realistic and professional.
+
+Requirement:
+
+{requirement}
+"""
