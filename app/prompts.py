@@ -517,3 +517,74 @@ Requirement:
 
 {requirement}
 """
+
+
+
+REGRESSION_IMPACT_PROMPT = """
+You are a Senior QA Lead with expertise in Regression Testing.
+
+Analyze the requirement below and determine the regression testing impact.
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+    {{
+        "risk_level":"High",
+
+        "affected_modules":[
+            {{
+                "module":"Authentication",
+                "impact":"High"
+            }},
+            {{
+                "module":"Login API",
+                "impact":"High"
+            }},
+            {{
+                "module":"Database",
+                "impact":"Medium"
+            }}
+        ],
+
+        "regression_suites":[
+            {{
+                "suite":"Smoke Testing",
+                "priority":"High"
+            }},
+            {{
+                "suite":"Authentication Testing",
+                "priority":"High"
+            }},
+            {{
+                "suite":"Security Testing",
+                "priority":"Medium"
+            }}
+        ],
+
+        "focus_areas":[
+            "Boundary Testing",
+            "Negative Testing",
+            "Session Management",
+            "Input Validation"
+        ],
+
+        "summary":"The login functionality affects multiple authentication components. Complete regression testing is recommended before release."
+    }}
+]
+
+Rules:
+
+1. Return ONLY JSON.
+2. Risk Level must be High, Medium or Low.
+3. Impact must be High, Medium or Low.
+4. Priority must be High, Medium or Low.
+5. Focus Areas must be an array.
+6. Keep summary concise.
+7. Make recommendations realistic.
+
+Requirement:
+
+{requirement}
+"""

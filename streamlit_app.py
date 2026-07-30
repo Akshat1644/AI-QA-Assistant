@@ -18,7 +18,8 @@ from app.prompts import (
     SMART_RTM_PROMPT,
     COMPLETENESS_ANALYSIS_PROMPT,
     BUG_PREDICTION_PROMPT,
-    DEFECT_REPORT_PROMPT
+    DEFECT_REPORT_PROMPT,
+    REGRESSION_IMPACT_PROMPT
 
 )
 
@@ -66,7 +67,7 @@ requirement = st.text_area(
 
 # CREATE BUTTONS
 button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9, button_col10 = st.columns(10)
-button_col11 , button_col12 , button_col13= st.columns(3)
+button_col11, button_col12, button_col13, button_col14= st.columns(4)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -106,6 +107,9 @@ with button_col12:
 
 with button_col13:
     defect_report = st.button("Defect Report")
+
+with button_col14:
+    regression_analysis = st.button("Regression Analysis")
 
 
 
@@ -1439,4 +1443,208 @@ if "defect_df" in st.session_state:
         file_name="AI_Defect_Report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="defect_report_excel"
+    )
+
+
+
+# ==========================================================
+# Regression Impact Analysis
+# ==========================================================
+
+if regression_analysis:
+
+    if requirement.strip():
+
+        prompt = REGRESSION_IMPACT_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Regression Impact..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                result = result.replace("```json", "")
+                result = result.replace("```", "")
+                result = result.strip()
+
+                data = json.loads(result)
+
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Risk Level",
+                    "Affected Modules",
+                    "Regression Suites",
+                    "Focus Areas",
+                    "Summary"
+                ]
+
+                st.session_state["regression_df"] = df
+
+            except json.JSONDecodeError:
+
+                st.error("Unable to parse Regression Impact Analysis.")
+
+                st.code(result)
+
+            except Exception:
+
+                st.error("Failed to analyze Regression Impact.")
+
+
+# ==========================================================
+# Dashboard
+# ==========================================================
+
+if "regression_df" in st.session_state:
+
+    df = st.session_state["regression_df"]
+
+    row = df.iloc[0]
+
+    st.subheader("📈 AI Regression Impact Dashboard")
+
+    # -------------------------------------------------
+    # Risk Display
+    # -------------------------------------------------
+
+    risk = str(row["Risk Level"]).title()
+
+    if risk == "High":
+        risk_display = "🔴 High"
+
+    elif risk == "Medium":
+        risk_display = "🟡 Medium"
+
+    else:
+        risk_display = "🟢 Low"
+
+    affected_modules = row["Affected Modules"]
+    regression_suites = row["Regression Suites"]
+    focus_areas = row["Focus Areas"]
+
+    affected_count = len(affected_modules)
+    suite_count = len(regression_suites)
+    focus_count = len(focus_areas)
+
+    # -------------------------------------------------
+    # Metrics
+    # -------------------------------------------------
+
+    metric1, metric2, metric3, metric4 = st.columns(4)
+
+    metric1.metric(
+        "Risk Level",
+        risk_display
+    )
+
+    metric2.metric(
+        "Affected Modules",
+        affected_count
+    )
+
+    metric3.metric(
+        "Regression Suites",
+        suite_count
+    )
+
+    metric4.metric(
+        "Focus Areas",
+        focus_count
+    )
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Affected Modules
+    # -------------------------------------------------
+
+    st.markdown("## 📦 Affected Modules")
+
+    for module in affected_modules:
+
+        impact = module["impact"]
+
+        if impact == "High":
+            icon = "🔴"
+
+        elif impact == "Medium":
+            icon = "🟡"
+
+        else:
+            icon = "🟢"
+
+        st.markdown(
+            f"**{module['module']}** &nbsp;&nbsp; {icon} {impact}",
+            unsafe_allow_html=True
+        )
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Regression Suites
+    # -------------------------------------------------
+
+    st.markdown("## 🧪 Recommended Regression Suites")
+
+    for suite in regression_suites:
+
+        priority = suite["priority"]
+
+        if priority == "High":
+            icon = "🔴"
+
+        elif priority == "Medium":
+            icon = "🟡"
+
+        else:
+            icon = "🟢"
+
+        st.markdown(
+            f"**{suite['suite']}** &nbsp;&nbsp; {icon} {priority}",
+            unsafe_allow_html=True
+        )
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Focus Areas
+    # -------------------------------------------------
+
+    st.markdown("## 🎯 Testing Focus Areas")
+
+    cols = st.columns(2)
+
+    for i, area in enumerate(focus_areas):
+
+        with cols[i % 2]:
+
+            st.success(area)
+
+    st.divider()
+
+    # -------------------------------------------------
+    # AI Summary
+    # -------------------------------------------------
+
+    st.markdown("## 📋 AI Regression Summary")
+
+    st.info(row["Summary"])
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Download Excel
+    # -------------------------------------------------
+
+    excel_file = convert_df_to_excel(df)
+
+    st.download_button(
+        label="📊 Download Excel",
+        data=excel_file,
+        file_name="Regression_Impact_Analysis.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="regression_impact_excel"
     )
