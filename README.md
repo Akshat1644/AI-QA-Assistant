@@ -16,6 +16,8 @@ Key Features
 ✅ Risk Analysis
 ✅ Defect Prediction
 ✅ AI Bug Prediction
+✅ Regression Impact Analysis
+
 
 This project demonstrates how Generative AI can significantly reduce manual effort in software testing while improving test coverage, consistency, and overall QA productivity.
 ---
