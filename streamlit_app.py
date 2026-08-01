@@ -19,7 +19,8 @@ from app.prompts import (
     COMPLETENESS_ANALYSIS_PROMPT,
     BUG_PREDICTION_PROMPT,
     DEFECT_REPORT_PROMPT,
-    REGRESSION_IMPACT_PROMPT
+    REGRESSION_IMPACT_PROMPT,
+    AUTOMATION_FEASIBILITY_PROMPT
 
 )
 
@@ -67,7 +68,7 @@ requirement = st.text_area(
 
 # CREATE BUTTONS
 button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9, button_col10 = st.columns(10)
-button_col11, button_col12, button_col13, button_col14= st.columns(4)
+button_col11, button_col12, button_col13, button_col14, button_col15= st.columns(5)
 
 with button_col1:
     generate_tc = st.button("Generate Test Cases")
@@ -111,7 +112,8 @@ with button_col13:
 with button_col14:
     regression_analysis = st.button("Regression Analysis")
 
-
+with button_col15:
+    automation_feasibility = st.button("Automation Score")
 
 
 if generate_tc:
@@ -1277,13 +1279,15 @@ if defect_report:
 
             except json.JSONDecodeError:
 
-                st.error("Unable to parse Defect Report.")
-
-                st.code(result)
+                st.error(
+                    "AI returned an unexpected response. Please try again."
+                )
 
             except Exception:
 
-                st.error("Failed to generate Defect Report.")
+                st.error(
+                    "Something went wrong while processing your request."
+                )
 
 
 # ==========================================================
@@ -1485,13 +1489,15 @@ if regression_analysis:
 
             except json.JSONDecodeError:
 
-                st.error("Unable to parse Regression Impact Analysis.")
-
-                st.code(result)
+                st.error(
+                    "AI returned an unexpected response. Please try again."
+                )
 
             except Exception:
 
-                st.error("Failed to analyze Regression Impact.")
+                st.error(
+                    "Something went wrong while processing your request."
+                )
 
 
 # ==========================================================
@@ -1647,4 +1653,208 @@ if "regression_df" in st.session_state:
         file_name="Regression_Impact_Analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="regression_impact_excel"
+    )
+
+
+
+# ==========================================================
+# Automation Feasibility Analysis
+# ==========================================================
+
+if automation_feasibility:
+
+    if requirement.strip():
+
+        prompt = AUTOMATION_FEASIBILITY_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Automation Feasibility..."):
+
+            try:
+
+                result = generate_test_cases(prompt)
+
+                result = result.replace("```json", "")
+                result = result.replace("```", "")
+                result = result.strip()
+
+                data = json.loads(result)
+
+                df = pd.DataFrame(data)
+
+                df.columns = [
+                    "Automation Score",
+                    "Feasibility",
+                    "Recommended Framework",
+                    "Framework Reason",
+                    "Automation Challenges",
+                    "Automation Strategy",
+                    "Estimated Effort",
+                    "Maintenance Level",
+                    "Summary"
+                ]
+
+                st.session_state["automation_df"] = df
+
+            except json.JSONDecodeError:
+
+                st.error(
+                    "AI returned an unexpected response. Please try again."
+                )
+
+            except Exception:
+
+                st.error(
+                    "Something went wrong while processing your request."
+                )
+
+
+# ==========================================================
+# Automation Dashboard
+# ==========================================================
+
+if "automation_df" in st.session_state:
+
+    df = st.session_state["automation_df"]
+
+    row = df.iloc[0]
+
+    st.subheader("🤖 AI Automation Feasibility Dashboard")
+
+    # -------------------------------------------------
+    # Score
+    # -------------------------------------------------
+
+    score = int(row["Automation Score"])
+
+    feasibility = str(row["Feasibility"]).title()
+
+    if feasibility == "High":
+        feasibility_display = "🟢 Highly Automatable"
+
+    elif feasibility == "Medium":
+        feasibility_display = "🟡 Partially Automatable"
+
+    else:
+        feasibility_display = "🔴 Low Automation Feasibility"
+
+    framework = row["Recommended Framework"]
+
+    challenges = row["Automation Challenges"]
+
+    strategies = row["Automation Strategy"]
+
+    metric1, metric2, metric3, metric4 = st.columns(4)
+
+    metric1.metric(
+        "Automation Score",
+        f"{score}%"
+    )
+
+    metric2.metric(
+        "Feasibility",
+        feasibility
+    )
+
+    metric3.metric(
+        "Framework",
+        framework
+    )
+
+    metric4.metric(
+        "Challenges",
+        len(challenges)
+    )
+
+    metric5, metric6 = st.columns(2)
+
+    metric5.metric(
+        "Estimated Effort",
+        row["Estimated Effort"]
+    )
+
+    metric6.metric(
+        "Maintenance",
+        row["Maintenance Level"]
+    )
+
+    st.progress(score / 100)
+
+    if score >= 80:
+
+        st.success("🟢 Excellent Candidate for Automation")
+
+    elif score >= 50:
+
+        st.warning("🟡 Partial Automation Recommended")
+
+    else:
+
+        st.error("🔴 Mostly Manual Testing Recommended")
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Recommended Framework
+    # -------------------------------------------------
+
+    st.markdown("## 🧰 Recommended Framework")
+
+    st.info(framework)
+
+    st.divider()
+
+    st.markdown("## 🧰 Why This Framework?")
+
+    st.info(row["Framework Reason"])
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Automation Challenges
+    # -------------------------------------------------
+
+    st.markdown("## ⚠️ Automation Challenges")
+
+    for challenge in challenges:
+
+        st.markdown(f"- {challenge}")
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Automation Strategy
+    # -------------------------------------------------
+
+    st.markdown("## 💡 Suggested Automation Strategy")
+
+    for strategy in strategies:
+
+        st.markdown(f"- {strategy}")
+
+    st.divider()
+
+    # -------------------------------------------------
+    # AI Summary
+    # -------------------------------------------------
+
+    st.markdown("## 📋 AI Summary")
+
+    st.info(row["Summary"])
+
+    st.divider()
+
+    # -------------------------------------------------
+    # Download Excel
+    # -------------------------------------------------
+
+    excel_file = convert_df_to_excel(df)
+
+    st.download_button(
+        label="📊 Download Excel",
+        data=excel_file,
+        file_name="Automation_Feasibility_Report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="automation_excel_download"
     )

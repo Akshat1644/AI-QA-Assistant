@@ -588,3 +588,53 @@ Requirement:
 
 {requirement}
 """
+
+
+
+AUTOMATION_FEASIBILITY_PROMPT = """
+You are a Senior Automation Test Architect.
+
+Analyze the software requirement below and determine its automation feasibility.
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+    {{
+        "automation_score": 92,
+        "feasibility": "High",
+        "recommended_framework": "Playwright",
+        "framework_reason": "Fast execution, auto-waiting, cross-browser support and modern architecture.",
+        "automation_challenges": [
+        "CAPTCHA",
+        "OTP Authentication",
+        "Dynamic Locators"
+        ],
+        "automation_strategy": [
+        "Automate UI using Playwright",
+        "Validate APIs separately",
+        "Mock third-party services"
+        ],
+        "estimated_effort": "2-3 Days",
+        "maintenance_level": "Low",
+        "summary": "This requirement is highly suitable for automation and can be efficiently automated using Playwright."
+    }}
+]
+
+Rules:
+
+1. Return ONLY valid JSON.
+2. automation_score must be an integer between 0 and 100.
+3. feasibility must be exactly one of:
+   - High
+   - Medium
+   - Low
+4. automation_challenges must be an array.
+5. automation_strategy must be an array.
+6. Keep the summary concise and practical.
+
+Requirement:
+
+{requirement}
+"""
