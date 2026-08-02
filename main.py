@@ -1,7 +1,7 @@
 import json
 
-from app.gemini_service import generate_test_cases
-from app.prompts import TEST_CASE_PROMPT
+from gemini_service import generate_test_cases
+from prompts import TEST_CASE_PROMPT
 
 requirement = input("Enter Requirement: ")
 

@@ -9,7 +9,7 @@ client= genai.Client(
 )
 
 
-def generate_test_cases(prompt):
+def generate_ai_response(prompt):
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=prompt

@@ -1,16 +1,27 @@
-import streamlit as st
-import pandas as pd
+# Standard Library
 import json
-import re
 import logging
+import re
+from datetime import datetime
 
-from app.gemini_service import generate_test_cases
-from app.prompts import (
-    TEST_CASE_PROMPT,
-    GAP_ANALYSIS_PROMPT,
-    TEST_DATA_PROMPT,
-    API_TEST_CASE_PROMPT,
-    PLAYWRIGHT_SCRIPT_PROMPT,
+# Third-party
+import pandas as pd
+import streamlit as st
+
+# Local Modules
+from gemini_service import generate_ai_response
+
+from app.test_case import render_test_case
+
+from app.gap_analysis import render_gap_analysis
+
+from app.test_data import render_test_data
+
+from app.api_test import render_api_test_cases
+
+from app.playwright import render_playwright_script
+
+from prompts import (
     QUALITY_SCORE_PROMPT,
     COVERAGE_ANALYSIS_PROMPT,
     RISK_ANALYSIS_PROMPT,
@@ -26,7 +37,6 @@ from app.prompts import (
 
 from app.export_service import (
     convert_df_to_excel,
-    convert_df_to_excel,
     convert_rtm_to_pdf
 )
 from datetime import datetime
@@ -38,18 +48,46 @@ st.set_page_config(
 )
 
 st.title("🧪 AI QA Assistant")
-st.caption("AI-powered QA productivity tool using Gemini AI")
+st.markdown("""
+### AI-Powered Software Testing Platform
 
-st.sidebar.markdown("""
-## Features
+Generate intelligent test artifacts, analyze requirements,
+predict risks, automate QA workflows and produce professional reports
+using **Google Gemini AI**.
 
-✅ Generate Test Cases
+---
+""")
 
-✅ Requirement Gap Analysis
+with st.sidebar:
 
-✅ Test Data Generation
+    st.title("🧪 AI QA Assistant")
 
-✅ Export to Excel
+    st.caption("Version 1.0")
+
+    st.divider()
+
+    st.markdown("""
+    ## Features
+
+    ✅ Test Case Generator
+
+    ✅ Smart RTM
+
+    ✅ Risk Analysis
+
+    ✅ Bug Prediction
+
+    ✅ Defect Prediction
+
+    ✅ Automation Score
+
+    ✅ Regression Analysis
+
+    ✅ Playwright
+
+    ✅ API Testing
+
+    ✅ Defect Report
 
 ---
 
@@ -61,303 +99,150 @@ st.sidebar.markdown("""
 - Pandas
 """)
 
+
+st.subheader("📝 Software Requirement")
+
 requirement = st.text_area(
-    "Enter Requirement",
-    height=150
+    "Paste your Software Requirement",
+    height=180,
+    placeholder="""
+Example:
+
+The user should be able to login using email and password.
+
+After successful login, the user is redirected to the dashboard.
+
+Forgot password functionality should send a reset email.
+
+Account should be locked after 5 invalid login attempts.
+"""
 )
 
+
 # CREATE BUTTONS
-button_col1, button_col2, button_col3, button_col4, button_col5, button_col6, button_col7, button_col8, button_col9, button_col10 = st.columns(10)
-button_col11, button_col12, button_col13, button_col14, button_col15= st.columns(5)
 
-with button_col1:
-    generate_tc = st.button("Generate Test Cases")
+# ==========================================================
+# 📋 Requirement Analysis
+# ==========================================================
 
-with button_col2:
-    analyze_gap = st.button("Analyze Requirement Gaps")
+with st.container():
 
-with button_col3:
-    generate_data = st.button("Generate Test Data")
+    st.markdown("## 📋 Requirement Analysis")
 
-with button_col4:
-     generate_api_tc = st.button("Generate API Test Cases")
+    col1, col2, col3 = st.columns(3)
 
-with button_col5:
-    generate_script = st.button("Generate Playwright Script")
+    with col1:
+        quality_score = st.button("Quality Score", use_container_width=True)
 
-with button_col6:
-    quality_score = st.button("Requirement Quality Score")
+    with col2:
+        requirement_completeness = st.button("Completeness", use_container_width=True)
 
-with button_col7:
-    coverage_analysis = st.button("Coverage Analysis")
+    with col3:
+        analyze_gap = st.button("Gap Analysis", use_container_width=True)
 
-with button_col8:
-    risk_analysis = st.button("Risk Analysis")
+st.divider()
 
-with button_col9:
-    defect_prediction = st.button("Defect Prediction")
 
-with button_col10:
-    generate_rtm = st.button("Requirement Traceability Matrix")
+# ==========================================================
+# 🤖 AI Insights
+# ==========================================================
 
-with button_col11:
-    completeness_analysis = st.button("Requirement Completeness")
+with st.container():
 
-with button_col12:
-    bug_prediction = st.button("AI Bug Prediction")
+    st.markdown("## 🤖 AI Insights")
 
-with button_col13:
-    defect_report = st.button("Defect Report")
+    col1, col2, col3 = st.columns(3)
 
-with button_col14:
-    regression_analysis = st.button("Regression Analysis")
+    with col1:
+        coverage_analysis = st.button("Coverage", use_container_width=True)
 
-with button_col15:
-    automation_feasibility = st.button("Automation Score")
+    with col2:
+        risk_analysis = st.button("Risk", use_container_width=True)
+
+    with col3:
+        bug_prediction = st.button("Bug Prediction", use_container_width=True)
+
+    col4, col5, col6 = st.columns(3)
+
+    with col4:
+        defect_prediction = st.button("Defect Prediction", use_container_width=True)
+
+    with col5:
+        regression_analysis = st.button("Regression", use_container_width=True)
+
+    with col6:
+        automation_feasibility = st.button("Automation", use_container_width=True)
+
+st.divider()
+
+
+# ==========================================================
+# 🧪 Test Generation
+# ==========================================================
+
+with st.container():
+
+    st.markdown("## 🧪 Test Generation")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        generate_tc = st.button("Test Cases", use_container_width=True)
+
+    with col2:
+        generate_test_data = st.button("Test Data", use_container_width=True)
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        generate_api_tc = st.button("API Test Cases", use_container_width=True)
+
+    with col4:
+        generate_playwright_script = st.button("Playwright", use_container_width=True)
+
+st.divider()
+
+
+# ==========================================================
+# 📄 Reports
+# ==========================================================
+
+with st.container():
+
+    st.markdown("## 📄 Reports")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        generate_rtm = st.button("Smart RTM", use_container_width=True)
+
+    with col2:
+        defect_report = st.button("Defect Report", use_container_width=True)
+
+st.divider()
 
 
 if generate_tc:
-
-    if requirement.strip():
-
-            prompt = TEST_CASE_PROMPT.format(
-                requirement=requirement
-            )
-
-            with st.spinner("Generating Test Cases..."):
-
-                try:
-
-                    result = generate_test_cases(prompt)
-
-                    result = result.replace("```json", "")
-                    result = result.replace("```", "")
-                    result = result.strip()
-
-                    data = json.loads(result)
-
-                    # st.success("Test Cases Generated Successfully")
-                    st.subheader("Generated Test Cases")
-
-                    df = pd.DataFrame(data)
-
-                    df.columns = [
-                        "Test Case ID",
-                        "Type",
-                        "Scenario",
-                        "Expected Result",
-                        "Priority"
-                    ]
-
-                    # Store for Smart RTM
-                    st.session_state["generated_testcases"] = df.copy()
-                    st.session_state["requirement"] = requirement
-
-                    st.success("✅ Test cases stored successfully.")
-
-                    excel_file = convert_df_to_excel(df)
-
-                    st.dataframe(
-                        df,
-                        use_container_width=True
-                    )
-
-                    high_count = len(df[df["Priority"] == "High"])
-                    medium_count = len(df[df["Priority"] == "Medium"])
-                    low_count = len(df[df["Priority"] == "Low"])
-
-                    metric_col1, metric_col2, metric_col3 = st.columns(3)
-
-                    with metric_col1:
-                        st.metric("High Priority", high_count)
-
-                    with metric_col2:
-                        st.metric("Medium Priority", medium_count)
-
-                    with metric_col3:
-                        st.metric("Low Priority", low_count)
-
-
-                    st.download_button(
-                        label="Download Excel",
-                        data=excel_file,
-                        file_name=f"test_cases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-
-                except json.JSONDecodeError:
-
-                    st.error("The AI returned an invalid response. Please try again.")
-
-                    if DEBUG:
-                        st.code(result)
-
-                except Exception as e:
-
-                    logging.exception(e)
-                    st.error("Unable to generate test cases. Please try again.")
-
+    render_test_case(requirement)
 
 
 if analyze_gap:    
-
-        if requirement.strip():
-
-            prompt = GAP_ANALYSIS_PROMPT.format(
-                requirement=requirement
-            )
-
-            with st.spinner("Analyzing Requirement..."):
-
-                result = generate_test_cases(prompt)
-
-                st.subheader("Requirement Gap Analysis")
-
-                st.markdown(result)
+    render_gap_analysis(requirement)
 
 
-if generate_data:
-
-        if requirement.strip():
-
-            prompt = TEST_DATA_PROMPT.format(
-                requirement=requirement
-            )
-
-            with st.spinner("Generating Test Data..."):
-
-                result = generate_test_cases(prompt)
-
-                result = result.replace("```json", "")
-                result = result.replace("```", "")
-                result = result.strip()
-
-                try:
-
-                    data = json.loads(result)
-
-                    df = pd.DataFrame(data)
-
-                    df.columns = [
-                        "Field",
-                        "Valid Data",
-                        "Invalid Data"
-                    ]
-
-                    st.subheader("Generated Test Data")
-
-                    st.dataframe(
-                        df,
-                        use_container_width=True
-                    )
-
-                except Exception as e:
-
-                    logging.exception(e)
-                    st.error("Unable to generate test data. Please try again.")
+if generate_test_data:
+    render_test_data(requirement)
 
 
 if generate_api_tc:
-
-    if requirement.strip():
-
-        prompt = API_TEST_CASE_PROMPT.format(
-            requirement=requirement
-        )
-
-        with st.spinner("Generating API Test Cases..."):
-
-            result = generate_test_cases(prompt)
-
-            result = result.replace("```json", "")
-            result = result.replace("```", "")
-            result = result.strip()
-
-            try:
-
-                data = json.loads(result)
-
-                df = pd.DataFrame(data)
-
-                df.columns = [
-                    "Test Case ID",
-                    "Type",
-                    "Scenario",
-                    "Expected Result",
-                    "Priority"
-                ]
-
-                st.subheader("Generated API Test Cases")
-
-                st.dataframe(
-                    df,
-                    use_container_width=True
-                )
-
-                excel_file = convert_df_to_excel(df)
-
-                st.download_button(
-                    label="Download API Test Cases",
-                    data=excel_file,
-                    file_name=f"api_test_cases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-
-            except Exception as e:
-
-                logging.exception(e)
-                st.error("Unable to generate API test cases. Please try again.")
+    render_api_test_cases(requirement)
 
 
 
-if generate_script:
+if generate_playwright_script:
+     render_playwright_script(requirement)
 
-    if requirement.strip():
-
-        prompt = PLAYWRIGHT_SCRIPT_PROMPT.format(
-            requirement=requirement
-        )
-
-        with st.spinner("Generating Playwright Script..."):
-
-            try:
-
-                result = generate_test_cases(prompt)
-
-                st.subheader("Generated Playwright Script")
-
-                st.code(
-                    result,
-                    language="python"
-                )
-
-                download_col1, download_col2 = st.columns(2)
-
-                with download_col1:
-                    st.download_button(
-                    label="📥 Download .py",
-                    data=result,
-                    file_name=f"playwright_script_{datetime.now().strftime('%Y%m%d_%H%M%S')}.py",
-                    mime="text/plain"
-                )
-                    
-
-                with download_col2:
-                    st.download_button(
-                    label="📄 Download .txt",
-                    data=result,
-                    file_name=f"playwright_script_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    mime="text/plain"
-                )
-
-
-            except Exception as e:
-
-                logging.exception(e)
-                
-                st.error("Something went wrong while processing your request. Please try again.")
-                
-
+   
 
 if quality_score:
 
@@ -503,9 +388,7 @@ if risk_analysis:
 
                 result = generate_test_cases(prompt)
 
-                result = result.replace("```json", "")
-                result = result.replace("```", "")
-                result = result.strip()
+                result = clean_ai_response(result)
 
                 data = json.loads(result)
 
@@ -610,9 +493,7 @@ if generate_rtm:
 
             result = generate_test_cases(prompt)
 
-            result = result.replace("```json", "")
-            result = result.replace("```", "")
-            result = result.strip()
+            result = clean_ai_response(result)
 
             data = json.loads(result)
 
@@ -853,7 +734,7 @@ if "risk_df" in st.session_state:
 
 
 
-if completeness_analysis:
+if requirement_completeness:
 
     if requirement.strip():
 
@@ -867,10 +748,8 @@ if completeness_analysis:
 
                 result = generate_test_cases(prompt)
 
-                result = result.replace("```json", "")
-                result = result.replace("```", "")
-                result = result.strip()
-
+                result = clean_ai_response(result)
+                
                 data = json.loads(result)
 
                 df = pd.DataFrame(data)
@@ -1012,9 +891,7 @@ if bug_prediction:
 
                 result = generate_test_cases(prompt)
 
-                result = result.replace("```json", "")
-                result = result.replace("```", "")
-                result = result.strip()
+                result = clean_ai_response(result)
 
                 data = json.loads(result)
 
@@ -1255,10 +1132,8 @@ if defect_report:
 
                 result = generate_test_cases(prompt)
 
-                result = result.replace("```json", "")
-                result = result.replace("```", "")
-                result = result.strip()
-
+                result = clean_ai_response(result)
+                
                 data = json.loads(result)
 
                 df = pd.DataFrame(data)
@@ -1469,9 +1344,7 @@ if regression_analysis:
 
                 result = generate_test_cases(prompt)
 
-                result = result.replace("```json", "")
-                result = result.replace("```", "")
-                result = result.strip()
+                result = clean_ai_response(result)
 
                 data = json.loads(result)
 
@@ -1675,9 +1548,7 @@ if automation_feasibility:
 
                 result = generate_test_cases(prompt)
 
-                result = result.replace("```json", "")
-                result = result.replace("```", "")
-                result = result.strip()
+                result = clean_ai_response(result)
 
                 data = json.loads(result)
 
@@ -1858,3 +1729,11 @@ if "automation_df" in st.session_state:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="automation_excel_download"
     )
+
+
+
+st.divider()
+
+st.caption(
+    "🧪 AI QA Assistant • Version 1.0 • Powered by Google Gemini AI"
+)
