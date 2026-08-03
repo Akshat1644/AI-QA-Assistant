@@ -1,86 +1,117 @@
 import streamlit as st
-import pandas as pd
 import json
 import logging
 from datetime import datetime
 
 from gemini_service import generate_ai_response
 from prompts import TEST_CASE_PROMPT
-from app.export_service import convert_df_to_excel
 from utils.formatting import parse_ai_json
+from utils.session_manager import save, load
+from utils.downloads import download_excel
 
 
-def render_test_case():
+def render_test_case(requirement):
+
+    # ----------------------------------------------------------
+    # Generate Test Cases
+    # ----------------------------------------------------------
 
     if requirement.strip():
 
-                prompt = TEST_CASE_PROMPT.format(
-                    requirement=requirement
-                )
+        prompt = TEST_CASE_PROMPT.format(
+            requirement=requirement
+        )
 
-                with st.spinner("Generating Test Cases..."):
+        with st.spinner("Generating Test Cases..."):
 
-                    try:
+            try:
 
-                        result = generate_ai_response(prompt)
+                result = generate_ai_response(prompt)
 
-                        df = parse_ai_json(result)
-                        
-                        # st.success("Test Cases Generated Successfully")
-                        st.subheader("Generated Test Cases")
+                df = parse_ai_json(result)
 
-                        df.columns = [
-                            "Test Case ID",
-                            "Type",
-                            "Scenario",
-                            "Expected Result",
-                            "Priority"
-                        ]
+                if df is None or df.empty:
+                    st.error("No test cases were generated.")
+                    return
 
-                        # Store for Smart RTM
-                        st.session_state["generated_testcases"] = df.copy()
-                        st.session_state["requirement"] = requirement
+                expected_columns = [
+                    "Test Case ID",
+                    "Type",
+                    "Scenario",
+                    "Expected Result",
+                    "Priority"
+                ]
 
-                        st.success("✅ Test cases stored successfully.")
+                if len(df.columns) != len(expected_columns):
+                    st.error("Unexpected response received from AI.")
+                    return
 
-                        excel_file = convert_df_to_excel(df)
+                df.columns = expected_columns
 
-                        st.dataframe(
-                            df,
-                            use_container_width=True
-                        )
+                # Save for Smart RTM
+                save("generated_testcases", df.copy())
+                save("requirement", requirement)
 
-                        high_count = len(df[df["Priority"] == "High"])
-                        medium_count = len(df[df["Priority"] == "Medium"])
-                        low_count = len(df[df["Priority"] == "Low"])
+                # Save current output
+                save("testcase_df", df)
 
-                        metric_col1, metric_col2, metric_col3 = st.columns(3)
+                st.success("✅ Test cases generated successfully.")
 
-                        with metric_col1:
-                            st.metric("High Priority", high_count)
+            except json.JSONDecodeError:
 
-                        with metric_col2:
-                            st.metric("Medium Priority", medium_count)
+                st.error("Unable to parse AI response.")
+                return
 
-                        with metric_col3:
-                            st.metric("Low Priority", low_count)
+            except Exception as e:
 
+                logging.exception(e)
 
-                        st.download_button(
-                            label="Download Excel",
-                            data=excel_file,
-                            file_name=f"test_cases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
+                st.error("Unable to generate test cases.")
 
-                    except json.JSONDecodeError:
+                return
 
-                        st.error("The AI returned an invalid response. Please try again.")
+    # ----------------------------------------------------------
+    # Display Saved Output
+    # ----------------------------------------------------------
 
-                        if DEBUG:
-                            st.code(result)
+    df = load("testcase_df")
 
-                    except Exception as e:
+    if df is None:
+        return
 
-                        logging.exception(e)
-                        st.error("Unable to generate test cases. Please try again.")
+    st.subheader("📋 Generated Test Cases")
+
+    st.dataframe(
+        df,
+        use_container_width=True
+    )
+
+    high_count = len(df[df["Priority"] == "High"])
+    medium_count = len(df[df["Priority"] == "Medium"])
+    low_count = len(df[df["Priority"] == "Low"])
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "🔴 High Priority",
+            high_count
+        )
+
+    with col2:
+        st.metric(
+            "🟡 Medium Priority",
+            medium_count
+        )
+
+    with col3:
+        st.metric(
+            "🟢 Low Priority",
+            low_count
+        )
+
+    download_excel(
+        df=df,
+        filename=f"Test_Cases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        key="testcase_excel"
+    )

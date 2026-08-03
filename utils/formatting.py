@@ -1,28 +1,47 @@
-import pandas as pd
 import json
+import pandas as pd
 
 
-def clean_ai_response(result):
+def clean_ai_response(result: str) -> str:
+    """
+    Removes markdown code fences returned by Gemini.
+    """
 
-    result = result.replace("```json", "")
-    result = result.replace("```", "")
-    result = result.strip()
+    if not result:
+        return ""
 
-    return result
+    tags = [
+        "```json",
+        "```JSON",
+        "```"
+    ]
+
+    for tag in tags:
+        result = result.replace(tag, "")
+
+    return result.strip()
 
 
 def parse_ai_json(result):
 
-    result = clean_ai_response(result)
+    cleaned = clean_ai_response(result)
 
-    data = json.loads(result)
+    data = json.loads(cleaned)
 
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        raise ValueError("AI returned an empty response.")
+
+    return df
 
 
 def clean_code_response(result):
 
-    for tag in [
+    if not result:
+        return ""
+
+    tags = [
         "```typescript",
         "```javascript",
         "```ts",
@@ -30,7 +49,9 @@ def clean_code_response(result):
         "```python",
         "```java",
         "```"
-    ]:
+    ]
+
+    for tag in tags:
         result = result.replace(tag, "")
 
     return result.strip()

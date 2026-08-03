@@ -1,51 +1,64 @@
 import streamlit as st
-import pandas as pd
 import json
+import logging
 
 from gemini_service import generate_ai_response
 from prompts import GAP_ANALYSIS_PROMPT
-from app.export_service import convert_df_to_excel
+
+from utils.formatting import parse_ai_json
+from utils.session_manager import save, load
+from utils.downloads import download_excel
 
 
 def render_gap_analysis(requirement):
 
-    if not requirement.strip():
-        st.warning("Please enter a software requirement.")
+    # ==========================================================
+    # Generate Gap Analysis
+    # ==========================================================
+
+    if requirement.strip():
+
+        prompt = GAP_ANALYSIS_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Requirement Gaps..."):
+
+            try:
+
+                result = generate_ai_response(prompt)
+
+                df = parse_ai_json(result)
+
+                if df.empty:
+
+                    st.error("No Requirement Gaps were generated.")
+                    return
+
+                save("gap_df", df)
+
+                st.success("✅ Requirement Gap Analysis generated successfully.")
+
+            except json.JSONDecodeError:
+
+                st.error("Unable to parse AI response.")
+                return
+
+            except Exception as e:
+
+                logging.exception(e)
+
+                st.error("Failed to analyze requirement gaps.")
+                return
+
+    # ==========================================================
+    # Display Saved Output
+    # ==========================================================
+
+    df = load("gap_df")
+
+    if df is None:
         return
-
-    prompt = GAP_ANALYSIS_PROMPT.format(
-        requirement=requirement
-    )
-
-    with st.spinner("Analyzing Requirement Gaps..."):
-
-        try:
-
-            result = generate_ai_response(prompt)
-
-            result = result.replace("```json", "")
-            result = result.replace("```", "")
-            result = result.strip()
-
-            data = json.loads(result)
-
-            df = pd.DataFrame(data)
-
-            st.session_state["gap_df"] = df
-
-        except json.JSONDecodeError:
-
-            st.error("Unable to parse AI response.")
-
-            return
-
-        except Exception:
-
-            st.error("Failed to analyze requirement gaps.")
-
-            return
-
-    df = st.session_state["gap_df"]
 
     st.subheader("🔍 Requirement Gap Analysis")
 
@@ -55,12 +68,8 @@ def render_gap_analysis(requirement):
         hide_index=True
     )
 
-    excel_file = convert_df_to_excel(df)
-
-    st.download_button(
-        label="📊 Download Excel",
-        data=excel_file,
-        file_name="Requirement_Gap_Analysis.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    download_excel(
+        df=df,
+        filename="Requirement_Gap_Analysis.xlsx",
         key="gap_analysis_excel"
     )
