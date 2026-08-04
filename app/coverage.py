@@ -16,7 +16,11 @@ def render_coverage_analysis(requirement):
     # Generate Coverage Analysis
     # ==========================================================
 
-    if requirement.strip():
+    if load("coverage_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = COVERAGE_ANALYSIS_PROMPT.format(
             requirement=requirement

@@ -16,7 +16,11 @@ def render_requirement_completeness(requirement):
     # Generate Completeness Analysis
     # ==========================================================
 
-    if requirement.strip():
+    if load("completeness_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = COMPLETENESS_ANALYSIS_PROMPT.format(
             requirement=requirement

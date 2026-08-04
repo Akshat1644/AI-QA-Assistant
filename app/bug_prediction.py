@@ -17,7 +17,11 @@ def render_bug_prediction(requirement):
     # Generate Bug Prediction
     # ==========================================================
 
-    if requirement.strip():
+    if load("bug_prediction_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = BUG_PREDICTION_PROMPT.format(
             requirement=requirement

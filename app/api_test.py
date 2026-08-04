@@ -16,7 +16,11 @@ def render_api_test_cases(requirement):
     # Generate API Test Cases
     # ----------------------------------------------------------
 
-    if requirement.strip():
+    if load("api_test_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = API_TEST_CASE_PROMPT.format(
             requirement=requirement

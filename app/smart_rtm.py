@@ -1,111 +1,161 @@
-import streamlit as st
-import pandas as pd
 import json
+import logging
+
+import streamlit as st
 
 from gemini_service import generate_ai_response
 from prompts import SMART_RTM_PROMPT
-from app.export_service import (
-    convert_df_to_excel,
-    convert_rtm_to_pdf
+
+from utils.formatting import parse_ai_json
+from utils.session_manager import save, load
+from utils.downloads import (
+    download_excel,
+    download_rtm_pdf
 )
 
 
 def render_smart_rtm(requirement):
 
+    # ----------------------------------------------------------
+    # Validation
+    # ----------------------------------------------------------
+
     if not requirement.strip():
         st.warning("Please enter a software requirement.")
         return
 
-    prompt = SMART_RTM_PROMPT.format(
-        requirement=requirement
-    )
+    generated_tc = load("generated_testcases")
 
-    with st.spinner("Generating Smart RTM..."):
+    if generated_tc is None or generated_tc.empty:
+        st.warning("Please generate Test Cases before generating Smart RTM.")
+        return
 
-        try:
+    # ----------------------------------------------------------
+    # Generate only once
+    # ----------------------------------------------------------
 
-            result = generate_ai_response(prompt)
+    if load("rtm_df") is None:
 
-            result = result.replace("```json", "")
-            result = result.replace("```", "")
-            result = result.strip()
+        test_cases = "\n".join(
+            generated_tc["Scenario"].astype(str).tolist()
+        )
 
-            data = json.loads(result)
+        prompt = SMART_RTM_PROMPT.format(
+            requirement=requirement,
+            test_cases=test_cases
+        )
 
-            df = pd.DataFrame(data)
+        with st.spinner("Generating Smart RTM..."):
 
-            df.columns = [
-                "Requirement",
-                "Status",
-                "Missing Scenario",
-                "Recommendation"
-            ]
+            try:
 
-            st.session_state["rtm_df"] = df
+                result = generate_ai_response(prompt)
 
-            covered = len(
-                df[df["Status"].str.lower() == "covered"]
-            )
+                df = parse_ai_json(result)
 
-            partial = len(
-                df[df["Status"].str.lower() == "partial"]
-            )
+                if df is None or df.empty:
+                    st.error("No RTM generated.")
+                    return
 
-            missing = len(
-                df[df["Status"].str.lower() == "missing"]
-            )
+                expected_columns = [
+                    "Requirement",
+                    "Status",
+                    "Missing Scenario",
+                    "Recommendation"
+                ]
 
-            total = len(df)
+                if len(df.columns) != len(expected_columns):
+                    st.error("Unexpected AI response.")
+                    return
 
-            coverage = round(
-                (
-                    covered
-                    / total
+                df.columns = expected_columns
+
+                covered = len(
+                    df[
+                        df["Status"]
+                        .str.lower()
+                        .str.strip() == "covered"
+                    ]
                 )
-                * 100
-            ) if total else 0
 
-            st.session_state["rtm_coverage"] = coverage
-            st.session_state["rtm_covered"] = covered
-            st.session_state["rtm_partial"] = partial
-            st.session_state["rtm_missing"] = missing
+                partial = len(
+                    df[
+                        df["Status"]
+                        .str.lower()
+                        .str.strip() == "partial"
+                    ]
+                )
 
-        except json.JSONDecodeError:
+                missing = len(
+                    df[
+                        df["Status"]
+                        .str.lower()
+                        .str.strip() == "missing"
+                    ]
+                )
 
-            st.error("Unable to parse Smart RTM response.")
-            return
+                total = len(df)
 
-        except Exception:
+                coverage = (
+                    round((covered / total) * 100)
+                    if total else 0
+                )
 
-            st.error("Failed to generate Smart RTM.")
-            return
+                save("rtm_df", df)
+                save("rtm_coverage", coverage)
+                save("rtm_covered", covered)
+                save("rtm_partial", partial)
+                save("rtm_missing", missing)
 
-    df = st.session_state["rtm_df"]
+                st.success("✅ Smart RTM Generated Successfully.")
 
-    coverage = st.session_state["rtm_coverage"]
+            except json.JSONDecodeError:
 
-    covered = st.session_state["rtm_covered"]
-    partial = st.session_state["rtm_partial"]
-    missing = st.session_state["rtm_missing"]
+                st.error("Unable to parse Smart RTM response.")
+                return
+
+            except Exception as e:
+
+                logging.exception(e)
+
+                st.error("Failed to generate Smart RTM.")
+                return
+
+    # ----------------------------------------------------------
+    # Display Existing Output
+    # ----------------------------------------------------------
+
+    df = load("rtm_df")
+
+    coverage = load("rtm_coverage")
+    covered = load("rtm_covered")
+    partial = load("rtm_partial")
+    missing = load("rtm_missing")
 
     st.subheader("📑 Smart Requirement Traceability Matrix")
 
     metric1, metric2, metric3, metric4 = st.columns(4)
 
     metric1.metric("✅ Covered", covered)
+
     metric2.metric("🟡 Partial", partial)
+
     metric3.metric("❌ Missing", missing)
+
     metric4.metric("Coverage", f"{coverage}%")
 
     st.progress(coverage / 100)
 
     if coverage >= 80:
+
         st.success("🟢 Excellent Requirement Coverage")
 
     elif coverage >= 60:
+
         st.warning("🟡 Moderate Requirement Coverage")
 
     else:
+
         st.error("🔴 Poor Requirement Coverage")
 
     st.divider()
@@ -116,28 +166,28 @@ def render_smart_rtm(requirement):
         hide_index=True
     )
 
-    excel_file = convert_df_to_excel(df)
-
-    pdf_file = convert_rtm_to_pdf(df)
+    # ----------------------------------------------------------
+    # Downloads
+    # ----------------------------------------------------------
 
     col1, col2 = st.columns(2)
 
     with col1:
 
-        st.download_button(
-            label="📊 Download Excel",
-            data=excel_file,
-            file_name="Smart_RTM.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_excel(
+            df=df,
+            filename="Smart_RTM.xlsx",
             key="smart_rtm_excel"
         )
 
     with col2:
 
-        st.download_button(
-            label="📄 Download PDF",
-            data=pdf_file,
-            file_name="Smart_RTM.pdf",
-            mime="application/pdf",
-            key="smart_rtm_pdf"
+        download_rtm_pdf(
+            df=df,
+            filename="Smart_RTM.pdf",
+            key="smart_rtm_pdf",
+            coverage=coverage,
+            covered=covered,
+            partial=partial,
+            missing=missing
         )

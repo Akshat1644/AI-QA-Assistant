@@ -1,36 +1,56 @@
+import logging
 import streamlit as st
 
 from gemini_service import generate_ai_response
 from prompts import PLAYWRIGHT_SCRIPT_PROMPT
+
 from utils.formatting import clean_code_response
+from utils.session_manager import save, load
 
 
 def render_playwright_script(requirement):
 
-    if not requirement.strip():
-        st.warning("Please enter a software requirement.")
-        return
+    # ==========================================================
+    # Generate Playwright Script
+    # ==========================================================
 
-    prompt = PLAYWRIGHT_SCRIPT_PROMPT.format(
-        requirement=requirement
-    )
+    if load("playwright_script") is None:
 
-    with st.spinner("Generating Playwright Script..."):
-
-        try:
-
-            result = generate_ai_response(prompt)
-
-            result = clean_code_response(result)
-
-            st.session_state["playwright_script"] = result
-
-        except Exception:
-
-            st.error("Failed to generate Playwright Script.")
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
             return
 
-    script = st.session_state["playwright_script"]
+        prompt = PLAYWRIGHT_SCRIPT_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Generating Playwright Script..."):
+
+            try:
+
+                result = generate_ai_response(prompt)
+
+                script = clean_code_response(result)
+
+                save("playwright_script", script)
+
+                st.success("✅ Playwright Script generated successfully.")
+
+            except Exception as e:
+
+                logging.exception(e)
+
+                st.error("Failed to generate Playwright Script.")
+                return
+
+    # ==========================================================
+    # Display Saved Output
+    # ==========================================================
+
+    script = load("playwright_script")
+
+    if script is None:
+        return
 
     st.subheader("🎭 AI Generated Playwright Script")
 

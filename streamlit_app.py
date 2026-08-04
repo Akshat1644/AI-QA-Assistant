@@ -44,10 +44,6 @@ from app.regression_analysis import render_regression_analysis
 from app.automation_feasibility import render_automation_feasibility
 
 
-from app.export_service import (
-    convert_df_to_excel,
-    convert_rtm_to_pdf
-)
 from datetime import datetime
 
 st.set_page_config(
@@ -231,50 +227,108 @@ with st.container():
 st.divider()
 
 
-if generate_tc:
-    render_test_case(requirement)
 
-if analyze_gap:    
-    render_gap_analysis(requirement)
-
-if generate_test_data:
-    render_test_data(requirement)
-
-if generate_api_tc:
-    render_api_test_cases(requirement)
-
-if generate_playwright_script:
-     render_playwright_script(requirement)
+# -------------------------------
+# Handle Button Clicks
+# -------------------------------
 
 if quality_score:
-    render_quality_score(requirement)
-                          
-if coverage_analysis:
-    render_coverage_analysis(requirement)
-                
-if risk_analysis:
-    render_risk_analysis(requirement)
-
-if defect_prediction:
-    render_defect_prediction(requirement)
-
-if generate_rtm:
-    render_smart_rtm(requirement)
+    st.session_state["active_page"] = "quality"
 
 if requirement_completeness:
-    render_requirement_completeness(requirement)
-                
-if bug_prediction:
-    render_bug_prediction(requirement)
+    st.session_state["active_page"] = "completeness"
 
-if defect_report:
-    render_defect_report(requirement)
-    
+if analyze_gap:
+    st.session_state["active_page"] = "gap"
+
+if coverage_analysis:
+    st.session_state["active_page"] = "coverage"
+
+if risk_analysis:
+    st.session_state["active_page"] = "risk"
+
+if bug_prediction:
+    st.session_state["active_page"] = "bug_prediction"
+
+if defect_prediction:
+    st.session_state["active_page"] = "defect_prediction"
+
 if regression_analysis:
-    render_regression_analysis(requirement)
+    st.session_state["active_page"] = "regression"
 
 if automation_feasibility:
+    st.session_state["active_page"] = "automation"
+
+if generate_tc:
+    st.session_state["active_page"] = "testcase"
+
+if generate_test_data:
+    st.session_state["active_page"] = "testdata"
+
+if generate_api_tc:
+    st.session_state["active_page"] = "api"
+
+if generate_playwright_script:
+    st.session_state["active_page"] = "playwright"
+
+if generate_rtm:
+    st.session_state["active_page"] = "rtm"
+
+if defect_report:
+    st.session_state["active_page"] = "defect_report"
+
+
+# ==========================================================
+# Render Selected Screen
+# ==========================================================
+
+active = st.session_state.get("active_page")
+
+if active == "testcase":
+    render_test_case(requirement)
+
+elif active == "gap":
+    render_gap_analysis(requirement)
+
+elif active == "testdata":
+    render_test_data(requirement)
+
+elif active == "api":
+    render_api_test_cases(requirement)
+
+elif active == "playwright":
+    render_playwright_script(requirement)
+
+elif active == "quality":
+    render_quality_score(requirement)
+
+elif active == "coverage":
+    render_coverage_analysis(requirement)
+
+elif active == "risk":
+    render_risk_analysis(requirement)
+
+elif active == "defect_prediction":
+    render_defect_prediction(requirement)
+
+elif active == "rtm":
+    render_smart_rtm(requirement)
+
+elif active == "completeness":
+    render_requirement_completeness(requirement)
+
+elif active == "bug_prediction":
+    render_bug_prediction(requirement)
+
+elif active == "defect_report":
+    render_defect_report(requirement)
+
+elif active == "regression":
+    render_regression_analysis(requirement)
+
+elif active == "automation":
     render_automation_feasibility(requirement)
+
 
 
 st.divider()

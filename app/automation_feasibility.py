@@ -16,7 +16,11 @@ def render_automation_feasibility(requirement):
     # Generate Automation Feasibility
     # ----------------------------------------------------------
 
-    if requirement.strip():
+    if load("automation_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = AUTOMATION_FEASIBILITY_PROMPT.format(
             requirement=requirement
@@ -250,7 +254,7 @@ def render_automation_feasibility(requirement):
     with col2:
 
         st.download_button(
-            label="📄 Download Raw Response",
+            label="📄 Download Report",
             data=json.dumps(
                 row.to_dict(),
                 indent=4

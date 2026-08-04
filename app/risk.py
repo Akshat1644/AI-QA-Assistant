@@ -1,84 +1,107 @@
 import streamlit as st
-import pandas as pd
 import json
+import logging
 
 from gemini_service import generate_ai_response
 from prompts import RISK_ANALYSIS_PROMPT
-from app.export_service import convert_df_to_excel
+
+from utils.formatting import parse_ai_json
+from utils.session_manager import save, load
+from utils.downloads import download_excel
 
 
 def render_risk_analysis(requirement):
 
-    if not requirement.strip():
-        st.warning("Please enter a software requirement.")
+    # ==========================================================
+    # Generate Risk Analysis
+    # ==========================================================
+
+    if load("risk_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
+
+        prompt = RISK_ANALYSIS_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Project Risks..."):
+
+            try:
+
+                result = generate_ai_response(prompt)
+
+                df = parse_ai_json(result)
+
+                expected_columns = [
+                    "Risk Area",
+                    "Severity",
+                    "Reason",
+                    "Recommendation"
+                ]
+
+                if len(df.columns) != len(expected_columns):
+
+                    st.error("Unexpected AI response.")
+                    return
+
+                df.columns = expected_columns
+
+                high = len(df[df["Severity"] == "High"])
+                medium = len(df[df["Severity"] == "Medium"])
+                low = len(df[df["Severity"] == "Low"])
+
+                total = len(df)
+
+                risk_score = (
+                    round(
+                        (
+                            (high * 3)
+                            + (medium * 2)
+                            + (low * 1)
+                        )
+                        /
+                        (total * 3)
+                        * 100
+                    )
+                    if total > 0
+                    else 0
+                )
+
+                save("risk_df", df)
+                save("risk_score", risk_score)
+                save("high_risk", high)
+                save("medium_risk", medium)
+                save("low_risk", low)
+
+                st.success("✅ Risk Analysis generated successfully.")
+
+            except json.JSONDecodeError:
+
+                st.error("Unable to parse Risk Analysis response.")
+                return
+
+            except Exception as e:
+
+                logging.exception(e)
+
+                st.error("Failed to analyze project risks.")
+                return
+
+    # ==========================================================
+    # Display Saved Output
+    # ==========================================================
+
+    df = load("risk_df")
+
+    if df is None:
         return
 
-    prompt = RISK_ANALYSIS_PROMPT.format(
-        requirement=requirement
-    )
-
-    with st.spinner("Analyzing Project Risks..."):
-
-        try:
-
-            result = generate_ai_response(prompt)
-
-            result = result.replace("```json", "")
-            result = result.replace("```", "")
-            result = result.strip()
-
-            data = json.loads(result)
-
-            df = pd.DataFrame(data)
-
-            df.columns = [
-                "Risk Area",
-                "Severity",
-                "Reason",
-                "Recommendation"
-            ]
-
-            st.session_state["risk_df"] = df
-
-            high = len(df[df["Severity"] == "High"])
-            medium = len(df[df["Severity"] == "Medium"])
-            low = len(df[df["Severity"] == "Low"])
-
-            total = len(df)
-
-            risk_score = round(
-                (
-                    (high * 3)
-                    + (medium * 2)
-                    + (low * 1)
-                )
-                /
-                (total * 3)
-                * 100
-            )
-
-            st.session_state["risk_score"] = risk_score
-            st.session_state["high_risk"] = high
-            st.session_state["medium_risk"] = medium
-            st.session_state["low_risk"] = low
-
-        except json.JSONDecodeError:
-
-            st.error("Unable to parse Risk Analysis response.")
-            return
-
-        except Exception:
-
-            st.error("Failed to analyze project risks.")
-            return
-
-    df = st.session_state["risk_df"]
-
-    risk_score = st.session_state["risk_score"]
-
-    high = st.session_state["high_risk"]
-    medium = st.session_state["medium_risk"]
-    low = st.session_state["low_risk"]
+    risk_score = load("risk_score")
+    high = load("high_risk")
+    medium = load("medium_risk")
+    low = load("low_risk")
 
     st.subheader("⚠️ AI Risk Analysis Dashboard")
 
@@ -92,12 +115,15 @@ def render_risk_analysis(requirement):
     st.progress(risk_score / 100)
 
     if risk_score >= 70:
+
         st.error("🔴 Overall Risk: High")
 
     elif risk_score >= 40:
+
         st.warning("🟡 Overall Risk: Medium")
 
     else:
+
         st.success("🟢 Overall Risk: Low")
 
     st.divider()
@@ -106,10 +132,12 @@ def render_risk_analysis(requirement):
 
     for _, row in df.iterrows():
 
-        if row["Severity"] == "High":
+        severity = str(row["Severity"]).title()
+
+        if severity == "High":
             icon = "🔴"
 
-        elif row["Severity"] == "Medium":
+        elif severity == "Medium":
             icon = "🟡"
 
         else:
@@ -124,36 +152,42 @@ def render_risk_analysis(requirement):
             st.info(row["Risk Area"])
 
             st.markdown("### 📊 Severity")
-            st.write(f"**{icon} {row['Severity']}**")
+            st.write(f"**{icon} {severity}**")
 
             st.markdown("### ❗ Reason")
 
-            reasons = str(row["Reason"]).split(",")
+            reasons = row["Reason"]
+
+            if not isinstance(reasons, list):
+
+                reasons = [
+                    r.strip()
+                    for r in str(reasons).split(",")
+                    if r.strip()
+                ]
 
             for reason in reasons:
 
-                reason = reason.strip()
-
-                if reason:
-                    st.markdown(f"- {reason}")
+                st.markdown(f"- {reason}")
 
             st.markdown("### 💡 Recommendation")
 
-            recommendations = str(row["Recommendation"]).split(",")
+            recommendations = row["Recommendation"]
+
+            if not isinstance(recommendations, list):
+
+                recommendations = [
+                    r.strip()
+                    for r in str(recommendations).split(",")
+                    if r.strip()
+                ]
 
             for recommendation in recommendations:
 
-                recommendation = recommendation.strip()
+                st.success(recommendation)
 
-                if recommendation:
-                    st.success(recommendation)
-
-    excel_file = convert_df_to_excel(df)
-
-    st.download_button(
-        label="📊 Download Excel",
-        data=excel_file,
-        file_name="Risk_Analysis.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    download_excel(
+        df=df,
+        filename="Risk_Analysis.xlsx",
         key="risk_excel_download"
     )

@@ -19,7 +19,11 @@ def render_defect_report(requirement):
     # Generate Defect Report
     # ==========================================================
 
-    if requirement.strip():
+    if load("defect_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = DEFECT_REPORT_PROMPT.format(
             requirement=requirement

@@ -13,10 +13,14 @@ from utils.downloads import download_excel
 def render_test_case(requirement):
 
     # ----------------------------------------------------------
-    # Generate Test Cases
+    # Generate only once
     # ----------------------------------------------------------
 
-    if requirement.strip():
+    if "testcase_df" not in st.session_state:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = TEST_CASE_PROMPT.format(
             requirement=requirement
@@ -52,10 +56,13 @@ def render_test_case(requirement):
                 save("generated_testcases", df.copy())
                 save("requirement", requirement)
 
-                # Save current output
+                # Save output
                 save("testcase_df", df)
 
-                st.success("✅ Test cases generated successfully.")
+                st.success(
+                    "✅ Test Cases generated successfully.\n\n"
+                    "💾 Test cases have been saved and can now be used by Smart RTM."
+                )
 
             except json.JSONDecodeError:
 
@@ -65,21 +72,16 @@ def render_test_case(requirement):
             except Exception as e:
 
                 logging.exception(e)
-
                 st.error("Unable to generate test cases.")
-
                 return
 
     # ----------------------------------------------------------
-    # Display Saved Output
+    # Display Existing Output
     # ----------------------------------------------------------
 
-    df = load("testcase_df")
+    df = st.session_state["testcase_df"]
 
-    if df is None:
-        return
-
-    st.subheader("📋 Generated Test Cases")
+    st.subheader("Generated Test Cases")
 
     st.dataframe(
         df,
@@ -90,25 +92,16 @@ def render_test_case(requirement):
     medium_count = len(df[df["Priority"] == "Medium"])
     low_count = len(df[df["Priority"] == "Low"])
 
-    col1, col2, col3 = st.columns(3)
+    metric_col1, metric_col2, metric_col3 = st.columns(3)
 
-    with col1:
-        st.metric(
-            "🔴 High Priority",
-            high_count
-        )
+    with metric_col1:
+        st.metric("High Priority", high_count)
 
-    with col2:
-        st.metric(
-            "🟡 Medium Priority",
-            medium_count
-        )
+    with metric_col2:
+        st.metric("Medium Priority", medium_count)
 
-    with col3:
-        st.metric(
-            "🟢 Low Priority",
-            low_count
-        )
+    with metric_col3:
+        st.metric("Low Priority", low_count)
 
     download_excel(
         df=df,

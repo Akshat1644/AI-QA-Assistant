@@ -14,7 +14,11 @@ def render_defect_prediction(requirement):
     # Generate Defect Prediction
     # ==========================================================
 
-    if requirement.strip():
+    if load("defect_prediction") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = DEFECT_PREDICTION_PROMPT.format(
             requirement=requirement

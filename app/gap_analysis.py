@@ -16,7 +16,11 @@ def render_gap_analysis(requirement):
     # Generate Gap Analysis
     # ==========================================================
 
-    if requirement.strip():
+    if load("gap_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
 
         prompt = GAP_ANALYSIS_PROMPT.format(
             requirement=requirement

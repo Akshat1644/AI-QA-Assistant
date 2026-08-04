@@ -1,81 +1,104 @@
 import streamlit as st
-import pandas as pd
 import json
+import logging
 
 from gemini_service import generate_ai_response
 from prompts import REGRESSION_IMPACT_PROMPT
-from app.export_service import convert_df_to_excel
+
+from utils.formatting import parse_ai_json
+from utils.session_manager import save, load
+from utils.downloads import download_excel
 
 
 def render_regression_analysis(requirement):
 
-    if not requirement.strip():
-        st.warning("Please enter a software requirement.")
+    # ==========================================================
+    # Generate Regression Analysis
+    # ==========================================================
+
+    if load("regression_df") is None:
+
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
+            return
+                
+        prompt = REGRESSION_IMPACT_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Regression Impact..."):
+
+            try:
+
+                result = generate_ai_response(prompt)
+
+                df = parse_ai_json(result)
+
+                expected_columns = [
+                    "Affected Module",
+                    "Impact Level",
+                    "Reason",
+                    "Recommended Regression Tests"
+                ]
+
+                if len(df.columns) != len(expected_columns):
+
+                    st.error("Unexpected AI response.")
+                    return
+
+                df.columns = expected_columns
+
+                high = len(df[df["Impact Level"] == "High"])
+                medium = len(df[df["Impact Level"] == "Medium"])
+                low = len(df[df["Impact Level"] == "Low"])
+
+                total = len(df)
+
+                score = (
+                    round(
+                        (
+                            high * 3 +
+                            medium * 2 +
+                            low
+                        ) / (total * 3) * 100
+                    )
+                    if total > 0
+                    else 0
+                )
+
+                save("regression_df", df)
+                save("regression_score", score)
+                save("reg_high", high)
+                save("reg_medium", medium)
+                save("reg_low", low)
+
+                st.success("✅ Regression Impact Analysis generated successfully.")
+
+            except json.JSONDecodeError:
+
+                st.error("Unable to parse Regression Analysis response.")
+                return
+
+            except Exception as e:
+
+                logging.exception(e)
+
+                st.error("Failed to analyze Regression Impact.")
+                return
+
+    # ==========================================================
+    # Display Saved Output
+    # ==========================================================
+
+    df = load("regression_df")
+
+    if df is None:
         return
 
-    prompt = REGRESSION_IMPACT_PROMPT.format(
-        requirement=requirement
-    )
-
-    with st.spinner("Analyzing Regression Impact..."):
-
-        try:
-
-            result = generate_ai_response(prompt)
-
-            result = result.replace("```json", "")
-            result = result.replace("```", "")
-            result = result.strip()
-
-            data = json.loads(result)
-
-            df = pd.DataFrame(data)
-
-            df.columns = [
-                "Affected Module",
-                "Impact Level",
-                "Reason",
-                "Recommended Regression Tests"
-            ]
-
-            st.session_state["regression_df"] = df
-
-            high = len(df[df["Impact Level"] == "High"])
-            medium = len(df[df["Impact Level"] == "Medium"])
-            low = len(df[df["Impact Level"] == "Low"])
-
-            total = len(df)
-
-            score = round(
-                (
-                    high * 3 +
-                    medium * 2 +
-                    low
-                ) / (total * 3) * 100
-            ) if total else 0
-
-            st.session_state["regression_score"] = score
-            st.session_state["reg_high"] = high
-            st.session_state["reg_medium"] = medium
-            st.session_state["reg_low"] = low
-
-        except json.JSONDecodeError:
-
-            st.error("Unable to parse Regression Analysis response.")
-            return
-
-        except Exception:
-
-            st.error("Failed to analyze Regression Impact.")
-            return
-
-    df = st.session_state["regression_df"]
-
-    score = st.session_state["regression_score"]
-
-    high = st.session_state["reg_high"]
-    medium = st.session_state["reg_medium"]
-    low = st.session_state["reg_low"]
+    score = load("regression_score")
+    high = load("reg_high")
+    medium = load("reg_medium")
+    low = load("reg_low")
 
     st.subheader("🔄 AI Regression Impact Dashboard")
 
@@ -89,12 +112,15 @@ def render_regression_analysis(requirement):
     st.progress(score / 100)
 
     if score >= 70:
+
         st.error("🔴 Extensive Regression Testing Required")
 
     elif score >= 40:
+
         st.warning("🟡 Moderate Regression Testing Required")
 
     else:
+
         st.success("🟢 Minimal Regression Testing Required")
 
     st.divider()
@@ -103,10 +129,12 @@ def render_regression_analysis(requirement):
 
     for _, row in df.iterrows():
 
-        if row["Impact Level"] == "High":
+        impact = str(row["Impact Level"]).title()
+
+        if impact == "High":
             icon = "🔴"
 
-        elif row["Impact Level"] == "Medium":
+        elif impact == "Medium":
             icon = "🟡"
 
         else:
@@ -121,38 +149,42 @@ def render_regression_analysis(requirement):
             st.info(row["Affected Module"])
 
             st.markdown("### 📊 Impact Level")
-            st.write(f"**{icon} {row['Impact Level']}**")
+            st.write(f"**{icon} {impact}**")
 
             st.markdown("### ❓ Reason")
 
-            reasons = str(row["Reason"]).split(",")
+            reasons = row["Reason"]
+
+            if not isinstance(reasons, list):
+
+                reasons = [
+                    r.strip()
+                    for r in str(reasons).split(",")
+                    if r.strip()
+                ]
 
             for reason in reasons:
 
-                reason = reason.strip()
-
-                if reason:
-                    st.markdown(f"- {reason}")
+                st.markdown(f"- {reason}")
 
             st.markdown("### ✅ Recommended Regression Tests")
 
-            tests = str(
-                row["Recommended Regression Tests"]
-            ).split(",")
+            tests = row["Recommended Regression Tests"]
+
+            if not isinstance(tests, list):
+
+                tests = [
+                    t.strip()
+                    for t in str(tests).split(",")
+                    if t.strip()
+                ]
 
             for test in tests:
 
-                test = test.strip()
+                st.success(test)
 
-                if test:
-                    st.success(test)
-
-    excel_file = convert_df_to_excel(df)
-
-    st.download_button(
-        label="📊 Download Excel",
-        data=excel_file,
-        file_name="Regression_Impact.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    download_excel(
+        df=df,
+        filename="Regression_Impact.xlsx",
         key="regression_excel"
     )

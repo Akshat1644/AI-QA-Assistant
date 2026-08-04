@@ -1,43 +1,70 @@
 import re
+import logging
 import streamlit as st
 
 from gemini_service import generate_ai_response
 from prompts import QUALITY_SCORE_PROMPT
 
+from utils.session_manager import save, load
+
 
 def render_quality_score(requirement):
 
-    if not requirement.strip():
-        st.warning("Please enter a software requirement.")
-        return
+    # ==========================================================
+    # Generate Quality Score
+    # ==========================================================
 
-    prompt = QUALITY_SCORE_PROMPT.format(
-        requirement=requirement
-    )
+    if load("quality_result") is None:
 
-    with st.spinner("Analyzing Requirement Quality..."):
-
-        try:
-
-            result = generate_ai_response(prompt)
-
-            st.session_state["quality_result"] = result
-
-        except Exception:
-
-            st.error("Failed to analyze requirement quality.")
+        if not requirement.strip():
+            st.warning("Please enter a software requirement.")
             return
 
-    result = st.session_state["quality_result"]
+        prompt = QUALITY_SCORE_PROMPT.format(
+            requirement=requirement
+        )
+
+        with st.spinner("Analyzing Requirement Quality..."):
+
+            try:
+
+                result = generate_ai_response(prompt)
+
+                save("quality_result", result)
+
+                st.success("✅ Requirement Quality Analysis generated successfully.")
+
+            except Exception as e:
+
+                logging.exception(e)
+
+                st.error("Failed to analyze requirement quality.")
+                return
+
+    # ==========================================================
+    # Display Saved Output
+    # ==========================================================
+
+    result = load("quality_result")
+
+    if result is None:
+        return
 
     # -----------------------------
     # Extract Scores
     # -----------------------------
 
-    completeness = int(re.search(r"COMPLETENESS:\s*(\d+)", result).group(1))
-    clarity = int(re.search(r"CLARITY:\s*(\d+)", result).group(1))
-    testability = int(re.search(r"TESTABILITY:\s*(\d+)", result).group(1))
-    ambiguity = int(re.search(r"AMBIGUITY:\s*(\d+)", result).group(1))
+    try:
+
+        completeness = int(re.search(r"COMPLETENESS:\s*(\d+)", result).group(1))
+        clarity = int(re.search(r"CLARITY:\s*(\d+)", result).group(1))
+        testability = int(re.search(r"TESTABILITY:\s*(\d+)", result).group(1))
+        ambiguity = int(re.search(r"AMBIGUITY:\s*(\d+)", result).group(1))
+
+    except Exception:
+
+        st.error("Unable to parse Quality Score response.")
+        return
 
     overall = round(
         (
@@ -65,12 +92,15 @@ def render_quality_score(requirement):
     st.progress(overall / 100)
 
     if overall >= 80:
+
         st.success("🟢 Excellent Requirement Quality")
 
     elif overall >= 60:
+
         st.warning("🟡 Good Requirement Quality")
 
     else:
+
         st.error("🔴 Poor Requirement Quality")
 
     st.divider()
@@ -92,6 +122,7 @@ def render_quality_score(requirement):
         for line in strengths.group(1).split("\n"):
 
             if line.strip().startswith("-"):
+
                 st.success(line.strip()[2:])
 
     # -----------------------------
@@ -111,6 +142,7 @@ def render_quality_score(requirement):
         for line in weaknesses.group(1).split("\n"):
 
             if line.strip().startswith("-"):
+
                 st.warning(line.strip()[2:])
 
     # -----------------------------
@@ -130,6 +162,7 @@ def render_quality_score(requirement):
         for line in recommendations.group(1).split("\n"):
 
             if line.strip().startswith("-"):
+
                 st.info(line.strip()[2:])
 
     # -----------------------------
