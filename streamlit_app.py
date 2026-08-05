@@ -105,6 +105,16 @@ with st.sidebar:
 """)
 
 
+
+if st.session_state.get("show_requirement_warning", False):
+
+    st.error("⚠ Please enter a Software Requirement first.")
+
+    st.session_state["show_requirement_warning"] = False
+
+
+
+
 st.subheader("📝 Software Requirement")
 
 requirement = st.text_area(
@@ -120,8 +130,19 @@ After successful login, the user is redirected to the dashboard.
 Forgot password functionality should send a reset email.
 
 Account should be locked after 5 invalid login attempts.
-"""
+""",
+    key="requirement_input"
 )
+
+
+def validate_requirement():
+
+    if not requirement.strip():
+
+        st.session_state["show_requirement_warning"] = True
+
+        st.rerun()
+
 
 
 # CREATE BUTTONS
@@ -227,55 +248,78 @@ with st.container():
 st.divider()
 
 
+active = st.session_state.get("active_page")
+
+# Validate requirement once
+if active and not requirement.strip():
+    st.warning("⚠️ Please enter a Software Requirement before using any feature.")
+    st.stop()
+
+
 
 # -------------------------------
 # Handle Button Clicks
 # -------------------------------
 
-if quality_score:
-    st.session_state["active_page"] = "quality"
-
-if requirement_completeness:
-    st.session_state["active_page"] = "completeness"
-
-if analyze_gap:
-    st.session_state["active_page"] = "gap"
-
-if coverage_analysis:
-    st.session_state["active_page"] = "coverage"
-
-if risk_analysis:
-    st.session_state["active_page"] = "risk"
-
-if bug_prediction:
-    st.session_state["active_page"] = "bug_prediction"
-
-if defect_prediction:
-    st.session_state["active_page"] = "defect_prediction"
-
-if regression_analysis:
-    st.session_state["active_page"] = "regression"
-
-if automation_feasibility:
-    st.session_state["active_page"] = "automation"
-
 if generate_tc:
+    validate_requirement()
     st.session_state["active_page"] = "testcase"
 
+if analyze_gap:
+    validate_requirement()
+    st.session_state["active_page"] = "gap"
+
 if generate_test_data:
+    validate_requirement()
     st.session_state["active_page"] = "testdata"
 
 if generate_api_tc:
+    validate_requirement()
     st.session_state["active_page"] = "api"
 
 if generate_playwright_script:
+    validate_requirement()
     st.session_state["active_page"] = "playwright"
 
+if quality_score:
+    validate_requirement()
+    st.session_state["active_page"] = "quality"
+
+if coverage_analysis:
+    validate_requirement()
+    st.session_state["active_page"] = "coverage"
+
+if risk_analysis:
+    validate_requirement()
+    st.session_state["active_page"] = "risk"
+
+if bug_prediction:
+    validate_requirement()
+    st.session_state["active_page"] = "bug"
+
+if defect_prediction:
+    validate_requirement()
+    st.session_state["active_page"] = "defect_prediction"
+
 if generate_rtm:
+    validate_requirement()
     st.session_state["active_page"] = "rtm"
 
+if requirement_completeness:
+    validate_requirement()
+    st.session_state["active_page"] = "completeness"
+
 if defect_report:
+    validate_requirement()
     st.session_state["active_page"] = "defect_report"
+
+if regression_analysis:
+    validate_requirement()
+    st.session_state["active_page"] = "regression"
+
+if automation_feasibility:
+    validate_requirement()
+    st.session_state["active_page"] = "automation"
 
 
 # ==========================================================
