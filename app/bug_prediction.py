@@ -55,9 +55,17 @@ def render_bug_prediction(requirement):
                     .astype(int)
                 )
 
-                high = len(df[df["Risk"] == "High"])
-                medium = len(df[df["Risk"] == "Medium"])
-                low = len(df[df["Risk"] == "Low"])
+                high = len(
+                    df[df["Risk"].str.strip().str.title() == "High"]
+                )
+
+                medium = len(
+                    df[df["Risk"].str.strip().str.title() == "Medium"]
+                )
+
+                low = len(
+                    df[df["Risk"].str.strip().str.title() == "Low"]
+                )
 
                 score = round(df["Probability"].mean())
 

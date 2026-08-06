@@ -27,34 +27,55 @@ Requirement:
 """
 
 
-
 GAP_ANALYSIS_PROMPT = """
 Act as a Senior QA Engineer and Business Analyst.
 
-Analyze the requirement and identify:
+Analyze the following software requirement and identify:
 
-1. Missing requirements
-2. Ambiguous statements
-3. Potential risks
-4. Clarification questions
+1. Missing Requirements
+2. Ambiguities
+3. Risks
+4. Clarification Questions
 
-Provide the response in markdown format.
+Return ONLY valid JSON.
 
-Use the following sections:
+Do NOT use markdown.
+Do NOT use headings.
+Do NOT use explanations.
+Do NOT wrap the response inside ```json.
 
-## Missing Requirements
+Return ONLY a JSON array in the following format:
 
-## Ambiguities
-
-## Risks
-
-## Clarification Questions
+[
+  {{
+    "Category": "Missing Requirement",
+    "Finding": "",
+    "Impact": "",
+    "Recommendation": ""
+  }},
+  {{
+    "Category": "Ambiguity",
+    "Finding": "",
+    "Impact": "",
+    "Recommendation": ""
+  }},
+  {{
+    "Category": "Risk",
+    "Finding": "",
+    "Impact": "",
+    "Recommendation": ""
+  }},
+  {{
+    "Category": "Clarification Question",
+    "Finding": "",
+    "Impact": "",
+    "Recommendation": ""
+  }}
+]
 
 Requirement:
 {requirement}
 """
-
-
 
 
 TEST_DATA_PROMPT = """
@@ -162,34 +183,43 @@ Requirement:
 COVERAGE_ANALYSIS_PROMPT = """
 Act as a Senior QA Lead.
 
-Analyze the requirement and identify:
+Analyze the software requirement and evaluate its test coverage.
 
-1. Covered Scenarios
-2. Missing Test Scenarios
-3. High Risk Areas
-4. Additional Recommendations
+Return ONLY valid JSON.
 
-Return the response in markdown format.
+Do NOT return markdown.
+Do NOT return explanations.
+Do NOT wrap the response inside ```json.
 
-Use this structure:
+Return the response exactly in this format:
 
-## Covered Scenarios
+[
+    {{
+        "Requirement Area":"User Login",
+        "Coverage":"Login with valid credentials is covered",
+        "Status":"Covered",
+        "Recommendation":"No additional action required"
+    }},
+    {{
+        "Requirement Area":"Forgot Password",
+        "Coverage":"Password reset flow is missing",
+        "Status":"Missing",
+        "Recommendation":"Add password reset test scenarios"
+    }}
+]
 
-- Scenario 1
+Rules:
 
-## Missing Scenarios
-
-- Scenario 1
-
-## High Risk Areas
-
-- Risk 1
-
-## Recommendations
-
-- Recommendation 1
+1. Return ONLY JSON.
+2. Status must be one of:
+   - Covered
+   - Partial
+   - Missing
+3. Recommendation should be concise.
+4. Generate multiple requirement areas whenever possible.
 
 Requirement:
+
 {requirement}
 """
 
@@ -385,78 +415,57 @@ Requirement:
 BUG_PREDICTION_PROMPT = """
 You are an experienced QA Architect with expertise in defect prevention and risk-based testing.
 
-Analyze the software requirement below and predict the areas most likely to contain software defects.
+Analyze the software requirement and predict modules most likely to contain defects.
 
 Return ONLY valid JSON.
 
-Format:
+Do NOT return markdown.
+Do NOT return explanations.
+Do NOT wrap inside ```json.
+
+Return the response exactly in this format:
 
 [
     {{
-        "module": "Authentication",
-        "risk": "High",
-        "probability": 95,
-        "reason": [
-            "Password validation rules are not clearly defined.",
-            "No password complexity requirement is mentioned.",
+        "Module":"Authentication",
+        "Risk":"High",
+        "Probability":95,
+        "Reason":[
+            "Password rules are not clearly defined.",
             "Boundary conditions are missing."
         ],
-        "recommendation": [
-            "Perform boundary value testing.",
-            "Execute negative testing.",
-            "Validate password complexity rules."
+        "Recommendation":[
+            "Perform boundary testing.",
+            "Execute negative testing."
+        ]
+    }},
+    {{
+        "Module":"API",
+        "Risk":"Medium",
+        "Probability":70,
+        "Reason":[
+            "Error handling scenarios are missing."
+        ],
+        "Recommendation":[
+            "Add API validation tests."
         ]
     }}
 ]
 
 Rules:
 
-1. Analyze these areas wherever applicable:
-   - Authentication
-   - Authorization
-   - Business Logic
-   - Input Validation
-   - Database
-   - API
-   - UI
-   - Session Management
-   - Security
-   - Performance
-   - Error Handling
-   - Edge Cases
-
-2. Probability must be an integer between 0 and 100.
-
-3. Risk must be exactly one of:
+1. Return ONLY JSON.
+2. Risk must be:
    - High
    - Medium
    - Low
-
-4. "reason" MUST always be a JSON array of strings.
-Never return a paragraph or a single string.
-
-Example:
-"reason": [
-    "Input validation rules are missing.",
-    "Password complexity is not specified.",
-    "Boundary conditions are undefined."
-]
-
-5. "recommendation" MUST always be a JSON array of strings.
-
-Example:
-"recommendation": [
-    "Perform boundary value testing.",
-    "Execute negative testing.",
-    "Validate password complexity."
-]
-
-6. Return ONLY valid JSON.
-   - No markdown.
-   - No explanations.
-   - No extra text.
+3. Probability must be an integer between 0 and 100.
+4. Reason must always be an array.
+5. Recommendation must always be an array.
+6. Generate multiple modules whenever possible.
 
 Requirement:
+
 {requirement}
 """
 
@@ -521,68 +530,38 @@ Requirement:
 
 
 REGRESSION_IMPACT_PROMPT = """
-You are a Senior QA Lead with expertise in Regression Testing.
+You are a Senior QA Lead.
 
-Analyze the requirement below and determine the regression testing impact.
+Analyze the requirement and identify modules affected by the change.
 
 Return ONLY valid JSON.
 
-Format:
+Do NOT return markdown.
+Do NOT wrap inside ```json.
+
+Return the response exactly in this format:
 
 [
     {{
-        "risk_level":"High",
-
-        "affected_modules":[
-            {{
-                "module":"Authentication",
-                "impact":"High"
-            }},
-            {{
-                "module":"Login API",
-                "impact":"High"
-            }},
-            {{
-                "module":"Database",
-                "impact":"Medium"
-            }}
-        ],
-
-        "regression_suites":[
-            {{
-                "suite":"Smoke Testing",
-                "priority":"High"
-            }},
-            {{
-                "suite":"Authentication Testing",
-                "priority":"High"
-            }},
-            {{
-                "suite":"Security Testing",
-                "priority":"Medium"
-            }}
-        ],
-
-        "focus_areas":[
-            "Boundary Testing",
-            "Negative Testing",
-            "Session Management",
-            "Input Validation"
-        ],
-
-        "summary":"The login functionality affects multiple authentication components. Complete regression testing is recommended before release."
+        "Affected Module":"Authentication",
+        "Impact Level":"High",
+        "Reason":"Login functionality has changed.",
+        "Recommended Regression Tests":"Login, Logout, Session Timeout"
+    }},
+    {{
+        "Affected Module":"User Profile",
+        "Impact Level":"Medium",
+        "Reason":"Profile loads after login.",
+        "Recommended Regression Tests":"Profile Update, View Profile"
     }}
 ]
 
 Rules:
 
 1. Return ONLY JSON.
-2. Risk Level must be High, Medium or Low.
-3. Impact must be High, Medium or Low.
-4. Priority must be High, Medium or Low.
-5. Focus Areas must be an array.
-6. Keep summary concise.
-7. Make recommendations realistic.
+2. Impact Level must be High, Medium or Low.
+3. Recommended Regression Tests should be comma separated.
+4. Generate multiple affected modules whenever possible.
 
 Requirement:
 

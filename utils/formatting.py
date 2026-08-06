@@ -22,6 +22,7 @@ def clean_ai_response(result: str) -> str:
     return result.strip()
 
 
+
 def parse_ai_json(result):
 
     cleaned = clean_ai_response(result)

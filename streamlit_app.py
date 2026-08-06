@@ -295,7 +295,7 @@ if risk_analysis:
 
 if bug_prediction:
     validate_requirement()
-    st.session_state["active_page"] = "bug"
+    st.session_state["active_page"] = "bug_prediction"
 
 if defect_prediction:
     validate_requirement()

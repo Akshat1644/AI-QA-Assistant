@@ -34,6 +34,19 @@ def render_gap_analysis(requirement):
 
                 df = parse_ai_json(result)
 
+                expected_columns = [
+                    "Category",
+                    "Finding",
+                    "Impact",
+                    "Recommendation"
+                ]
+
+                if len(df.columns) != len(expected_columns):
+                    st.error("Unexpected AI response.")
+                    return
+
+                df.columns = expected_columns
+
                 if df.empty:
 
                     st.error("No Requirement Gaps were generated.")
