@@ -20,7 +20,14 @@ API_KEYS = [key for key in API_KEYS if key]
 # Models (Fast → Lite → Pro)
 # -----------------------------
 
+# MODELS = [
+#     "gemini-2.5-flash"
+# ]
+
 MODELS = [
+    "gemini-flash-latest",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
     "gemini-2.5-flash"
 ]
 
