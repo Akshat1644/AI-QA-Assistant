@@ -1,90 +1,129 @@
 # 🧪 AI QA Assistant
 
-An AI-powered QA productivity tool built with Python, Streamlit, and Google Gemini AI to streamline and accelerate the software testing lifecycle.
+An **AI-powered QA productivity tool** built with **Python, Streamlit, and Google Gemini AI** to assist QA engineers across the software testing lifecycle.
 
-The application analyzes software requirements and automatically generates structured manual test cases, API test scenarios, realistic test data,bug prediction using AI and requirement gap analyses. It also supports exporting results to Excel and text formats, enabling QA engineers to efficiently document, review, and execute test artifacts. By leveraging generative AI, the tool reduces manual effort, improves requirement coverage, and enhances the overall productivity of QA teams.
-
-Key Features
-✅ AI-generated functional and negative test cases
-✅ Requirement Gap Analysis to identify missing or ambiguous requirements
-✅ AI-generated test data for different validation scenarios
-✅ API test case generation from API requirements
-✅ Export generated test cases to Excel
-✅ Download generated outputs as text files
-✅ Interactive and user-friendly Streamlit interface
-✅ Powered by Google Gemini AI for intelligent test generation
-✅ Risk Analysis
-✅ Defect Prediction
-✅ AI Bug Prediction
-✅ Regression Impact Analysis
-✅ Defect Report
-✅ Automation Feasibility Report
-
-
-This project demonstrates how Generative AI can significantly reduce manual effort in software testing while improving test coverage, consistency, and overall QA productivity.
----
-
-## 🚀 Features
-
-### ✅ Test Case Generation
-Generates:
-
-- Functional Test Cases
-- Negative Test Cases
-- Boundary Test Cases
-- Edge Test Cases
-
-### ✅ Requirement Gap Analysis
-
-Identifies:
-
-- Missing Requirements
-- Ambiguous Statements
-- Potential Risks
-- Clarification Questions
-
-### ✅ Test Data Generation
-
-Generates:
-
-- Valid Test Data
-- Invalid Test Data
-
-### ✅ Excel Export
-
-- Download generated test cases in Excel format
-- Timestamp-based file naming
-
-### ✅ Interactive Dashboard
-
-- Streamlit-based UI
-- Priority metrics visualization
-- Responsive table display
+The application analyzes software requirements and uses Generative AI to generate testing artifacts, identify risks and gaps, predict potential defects, assess automation feasibility, and improve requirement-to-test traceability.
 
 ---
 
-## 🛠 Tech Stack
+## 🚀 Key Features
 
-- Python
-- Gemini AI
-- Streamlit
-- Pandas
-- OpenPyXL
+| Feature                          | Purpose                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| 🧪 **Test Case Generation**      | Generates functional, negative, boundary, and edge test cases                    |
+| 📊 **Requirement Quality Score** | Evaluates completeness, clarity, testability, and ambiguity                      |
+| 📋 **Requirement Completeness**  | Identifies complete, partial, and missing requirement information                |
+| 🔍 **Gap Analysis**              | Identifies missing requirements, ambiguities, risks, and clarification questions |
+| 📈 **Coverage Analysis**         | Identifies covered, partial, and missing testing scenarios                       |
+| 🧪 **Test Data Generation**      | Generates valid, invalid, and boundary test data                                 |
+| 🌐 **API Test Cases**            | Generates API-focused testing scenarios                                          |
+| 🐞 **Bug Prediction**            | Predicts defect-prone modules with risk and probability                          |
+| 🐛 **Defect Prediction**         | Identifies potential defect areas and production issues                          |
+| 📝 **Defect Report**             | Generates structured defect reports with severity, priority, and root cause      |
+| 🔄 **Regression Analysis**       | Identifies affected modules and required regression testing                      |
+| ⚠️ **Risk Analysis**             | Identifies and prioritizes requirement-level risks                               |
+| 🤖 **Automation Feasibility**    | Evaluates automation suitability, framework, effort, and maintenance             |
+| 🔗 **Smart RTM**                 | Generates AI-assisted Requirement Traceability information                       |
+| 🎭 **Playwright Support**        | Supports AI-assisted automation-oriented testing workflows                       |
+
+---
+
+## 🧠 AI Integration
+
+The application uses **Google Gemini AI** with feature-specific prompt templates.
+
+```text
+Software Requirement
+        ↓
+Streamlit UI
+        ↓
+Feature Selection
+        ↓
+Feature-specific Prompt
+        ↓
+Gemini AI
+        ↓
+Response Parsing & Validation
+        ↓
+Structured QA Result
+        ↓
+Streamlit Dashboard
+        ↓
+Excel / Text Export
+```
+
+For structured features, AI responses are parsed into **Pandas DataFrames** before being displayed or exported.
+
+---
+
+## 🔄 Gemini Reliability
+
+The application supports **multiple Gemini API keys and model fallback**.
+
+If a configured model or API key fails, the application attempts another available key/model combination.
+
+This helps handle failures such as:
+
+* API quota exhaustion
+* Unavailable models
+* API errors
+* Invalid AI responses
+
+> Multiple API keys do not provide unlimited quota; each Gemini project remains subject to Google's applicable usage limits.
+
+---
+
+## 📥 Export
+
+Generated QA artifacts can be exported for further documentation and review.
+
+Supported output includes:
+
+* 📊 Excel
+* 📄 Text reports
+
+Excel processing uses **Pandas and OpenPyXL**.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Python**
+* **Streamlit**
+* **Google Gemini AI**
+* **Google GenAI SDK**
+* **Pandas**
+* **OpenPyXL**
+* **python-dotenv**
+* **JSON**
+* **Git & GitHub**
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-AI-QA-Assistant
+AI-QA-Assistant/
 │
 ├── app/
 │   ├── gemini_service.py
 │   ├── prompts.py
-│   └── export_service.py
+│   ├── test_case_generation.py
+│   ├── gap_analysis.py
+│   ├── coverage_analysis.py
+│   ├── bug_prediction.py
+│   ├── regression_analysis.py
+│   ├── risk_analysis.py
+│   ├── automation_feasibility.py
+│   ├── smart_rtm.py
+│   └── ...
+│
+├── utils/
+│   ├── formatting.py
+│   ├── session_manager.py
+│   └── downloads.py
 │
 ├── streamlit_app.py
-├── main.py
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -94,25 +133,39 @@ AI-QA-Assistant
 
 ## ⚙️ Installation
 
-Clone the repository:
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Akshat1644/AI-QA-Assistant.git
-```
-
-Move to the project folder:
-
-```bash
 cd AI-QA-Assistant
 ```
 
-Install dependencies:
+### 2. Create virtual environment
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run the application:
+### 4. Configure Gemini API
+
+Create a `.env` file:
+
+```env
+GEMINI_API_KEY_1=your_api_key
+GEMINI_API_KEY_2=your_api_key
+GEMINI_API_KEY_3=your_api_key
+```
+
+Make sure `.env` is included in `.gitignore`.
+
+### 5. Run the application
 
 ```bash
 streamlit run streamlit_app.py
@@ -122,62 +175,57 @@ streamlit run streamlit_app.py
 
 ## 📸 Screenshots
 
-### Home Page
+### 🏠 Dashboard
 
-![Home Page](screenshots/home_page.png)
+*Add screenshot here*
 
-### Test Case Generation
+### 🧪 Test Case Generation
 
-![Test Case Generation](screenshots/test_case_generation.png)
+*Add screenshot here*
 
-### Requirement Gap Analysis
+### 📊 AI Analysis
 
-![Gap Analysis](screenshots/gap_analysis.png)
+*Add screenshot here*
 
-### Test Data Generation
+### 🔗 Smart RTM
 
-![Test Data Generation](screenshots/test_data_generation.png)
+*Add screenshot here*
 
 ---
 
-## 🔄 Workflow
+## 🎯 Project Objective
 
-```text
-User Requirement
-        ↓
-Streamlit UI
-        ↓
-Prompt Templates
-        ↓
-Gemini AI
-        ↓
-JSON Parsing
-        ↓
-Pandas DataFrame
-        ↓
-Excel Export
-```
+The goal of **AI QA Assistant** is to reduce repetitive QA effort by combining **Generative AI with traditional software testing practices**.
+
+The application assists QA engineers with:
+
+* Requirement analysis
+* Test design
+* Test-data preparation
+* Risk-based testing
+* Defect prevention
+* Regression planning
+* Automation planning
+* QA documentation
+* Requirement traceability
+
+AI-generated results are intended to **assist QA engineers**, while final validation and testing decisions remain with the QA team.
 
 ---
 
 ## 🔮 Future Enhancements
 
-- PDF Export
-- Playwright Script Generation
-- API Test Case Generation
-- Severity Prediction
-- Jira Integration
-- Multi-user Support
+* Jira integration
+* CI/CD integration
+* Persistent project history
+* Additional AI model providers
+* Advanced Playwright automation generation
+* Automated defect-management integration
 
 ---
 
-## 💡 Example Use Cases
+## 👨‍💻 Author
 
-- Requirement Analysis
-- Test Case Design
-- Test Data Preparation
-- QA Productivity Improvement
-- Rapid Test Documentation
+**Akshat Dahalwar**
 
----
-
+**AI QA Assistant — AI-powered QA productivity and testing platform**
